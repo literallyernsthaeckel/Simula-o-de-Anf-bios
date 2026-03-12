@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Simulação: Anfíbios e a Cadeia Trófica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" as="style">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:wght@300;400;500;600;700&display=swap">
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --cor-fundo: #f4f1eb;
+            --cor-fundo-card: #ffffff;
+            --cor-texto: #2c2c2c;
+            --cor-texto-secundario: #5a5a5a;
+            --cor-borda: #d9d4cb;
+            --cor-plantas: #4a7c59;
+            --cor-insetos: #c4883a;
+            --cor-anfibios: #2e7d96;
+            --cor-predadores: #8b4049;
+            --cor-alerta: #b8432f;
+            --cor-destaque: #2e7d96;
+            --sombra-sutil: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+            --raio: 10px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        body {
+            font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--cor-fundo); color: var(--cor-texto);
+            line-height: 1.6; -webkit-font-smoothing: antialiased;
+            min-height: 100vh; overflow-x: hidden;
+        }
+        .container {
+            max-width: 680px; margin: 0 auto;
+            padding: 20px 16px 40px;
+            padding-left: max(16px, env(safe-area-inset-left));
+            padding-right: max(16px, env(safe-area-inset-right));
+            padding-bottom: max(40px, env(safe-area-inset-bottom));
+        }
+        header { text-align: center; padding: 28px 0 24px; border-bottom: 1px solid var(--cor-borda); margin-bottom: 24px; }
+        header .etiqueta { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 1.8px; text-transform: uppercase; color: var(--cor-destaque); margin-bottom: 12px; }
+        header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: clamp(22px, 5vw, 32px); font-weight: 400; line-height: 1.25; color: var(--cor-texto); margin-bottom: 10px; }
+        header p { font-size: 15px; color: var(--cor-texto-secundario); max-width: 480px; margin: 0 auto; line-height: 1.55; }
+        .card { background: var(--cor-fundo-card); border: 1px solid var(--cor-borda); border-radius: var(--raio); padding: 20px; margin-bottom: 16px; box-shadow: var(--sombra-sutil); }
+        .card-titulo { font-family: 'DM Serif Display', Georgia, serif; font-size: 18px; font-weight: 400; margin-bottom: 4px; color: var(--cor-texto); }
+        .card-subtitulo { font-size: 13px; color: var(--cor-texto-secundario); margin-bottom: 16px; line-height: 1.5; }
+        .painel-sim { padding: 16px; }
+        .painel-sim .card-subtitulo { margin-bottom: 8px; }
+        .sim-divisor { height: 1px; background: var(--cor-borda); margin: 10px 0; }
+        .cadeia { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 10px 4px; flex-wrap: nowrap; }
+        .nivel-trofico { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; min-width: 0; }
+        .nivel-circulo { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; margin-bottom: 4px; transition: transform 0.4s ease, opacity 0.4s ease; }
+        .nivel-circulo.plantas { background-color: var(--cor-plantas); }
+        .nivel-circulo.insetos { background-color: var(--cor-insetos); }
+        .nivel-circulo.anfibios { background-color: var(--cor-anfibios); }
+        .nivel-circulo.predadores { background-color: var(--cor-predadores); }
+        .nivel-nome { font-size: 11px; font-weight: 600; color: var(--cor-texto); line-height: 1.3; }
+        .nivel-pop { font-size: 10px; color: var(--cor-texto-secundario); font-variant-numeric: tabular-nums; }
+        .seta-cadeia { font-size: 14px; color: var(--cor-borda); flex-shrink: 0; margin-top: -18px; }
+        .grafico-container { position: relative; width: 100%; height: 240px; margin: 4px 0; }
+        .grafico-container canvas { width: 100% !important; height: 100% !important; }
+        .grafico-loading { display: flex; align-items: center; justify-content: center; height: 240px; color: var(--cor-texto-secundario); font-size: 14px; }
+        .controle-grupo { margin-bottom: 18px; }
+        .controle-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+        .controle-label span:first-child { font-size: 14px; font-weight: 600; color: var(--cor-texto); }
+        .controle-label .valor { font-size: 13px; font-weight: 500; color: var(--cor-destaque); font-variant-numeric: tabular-nums; }
+        .controle-descricao { font-size: 12.5px; color: var(--cor-texto-secundario); margin-bottom: 10px; line-height: 1.5; }
+        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 48px; background: transparent; cursor: pointer; padding: 0; touch-action: none; }
+        input[type="range"]::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: var(--cor-borda); }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 30px; height: 30px; border-radius: 50%; background: var(--cor-destaque); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25); margin-top: -11px; }
+        input[type="range"]::-moz-range-track { height: 8px; border-radius: 4px; background: var(--cor-borda); border: none; }
+        input[type="range"]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 50%; background: var(--cor-destaque); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+        input[type="range"].slider-poluicao::-webkit-slider-thumb { background: var(--cor-alerta); }
+        input[type="range"].slider-poluicao::-moz-range-thumb { background: var(--cor-alerta); }
+        .botoes-grupo { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+        .btn { flex: 1; min-width: 140px; min-height: 48px; padding: 12px 16px; border: none; border-radius: 8px; font-family: 'Source Sans 3', -apple-system, sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; -webkit-tap-highlight-color: transparent; }
+        .btn:active { transform: scale(0.97); }
+        .btn-remover { background: var(--cor-alerta); color: #fff; }
+        .btn-reiniciar { background: var(--cor-texto); color: #fff; }
+        .feedback { margin-top: 12px; padding: 12px 14px; border-radius: 8px; font-size: 13px; line-height: 1.55; color: var(--cor-texto); background: #faf6f0; border-left: 3px solid var(--cor-destaque); min-height: 44px; transition: background-color 0.3s ease, border-color 0.3s ease; }
+        .feedback.alerta { border-left-color: var(--cor-alerta); background: #fdf5f3; }
+        .feedback strong { font-weight: 600; }
+        .didatico { padding: 20px; }
+        .previsao-box { padding: 20px; }
+        .previsao-box h3 { font-family: 'DM Serif Display', Georgia, serif; font-size: 17px; font-weight: 400; margin-bottom: 14px; }
+        .previsao-cenario { margin-bottom: 16px; padding: 14px 16px; border-radius: 8px; background: #faf6f0; }
+        .previsao-cenario:last-child { margin-bottom: 0; }
+        .previsao-cenario-titulo { font-size: 14px; font-weight: 700; color: var(--cor-texto); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .previsao-cenario-titulo .marcador { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .previsao-etapa { font-size: 13px; color: var(--cor-texto-secundario); line-height: 1.6; padding-left: 16px; position: relative; margin-bottom: 4px; }
+        .previsao-etapa:last-child { margin-bottom: 0; }
+        .previsao-etapa::before { content: ''; position: absolute; left: 0; top: 8px; width: 5px; height: 1px; background: var(--cor-borda); }
+        .didatico h3 { font-family: 'DM Serif Display', Georgia, serif; font-size: 17px; font-weight: 400; margin-bottom: 10px; }
+        .didatico p { font-size: 14px; color: var(--cor-texto-secundario); line-height: 1.65; margin-bottom: 12px; }
+        .didatico p:last-child { margin-bottom: 0; }
+        .dado-destaque { display: inline-block; font-weight: 700; color: var(--cor-texto); }
+        .legenda-custom { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; margin-bottom: 4px; }
+        .legenda-item { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: var(--cor-texto-secundario); }
+        .legenda-cor { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .status-bar { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--cor-texto-secundario); margin-bottom: 12px; padding: 0 2px; }
+        .status-bar .tempo { font-variant-numeric: tabular-nums; }
+        .status-indicador { display: flex; align-items: center; gap: 5px; }
+        .pulso { width: 7px; height: 7px; border-radius: 50%; background: var(--cor-plantas); animation: pulsar 1.5s ease-in-out infinite; }
+        .pulso.parado { animation: none; background: var(--cor-alerta); }
+        @keyframes pulsar { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        footer { text-align: center; padding: 24px 0 8px; border-top: 1px solid var(--cor-borda); margin-top: 8px; }
+        footer p { font-size: 12px; color: var(--cor-texto-secundario); line-height: 1.6; }
+        footer .fonte { font-style: italic; }
+        .controles-simulacao { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .btn-pausar { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border: 1.5px solid var(--cor-borda); border-radius: 7px; background: var(--cor-fundo-card); font-family: 'Source Sans 3', -apple-system, sans-serif; font-size: 13px; font-weight: 600; color: var(--cor-texto); cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease; -webkit-tap-highlight-color: transparent; min-height: 44px; white-space: nowrap; }
+        .btn-pausar:active { transform: scale(0.97); }
+        .btn-pausar .icone-pausar { display: inline-flex; gap: 2px; }
+        .btn-pausar .barra { width: 3px; height: 12px; background: currentColor; border-radius: 1px; }
+        .btn-pausar .triangulo { width: 0; height: 0; border-left: 9px solid currentColor; border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
+        .velocidade-grupo { display: flex; align-items: center; gap: 4px; flex: 1; }
+        .velocidade-label { font-size: 12px; color: var(--cor-texto-secundario); font-weight: 500; white-space: nowrap; margin-right: 4px; }
+        .btn-vel { padding: 8px 14px; border: 1.5px solid var(--cor-borda); border-radius: 6px; background: var(--cor-fundo-card); font-family: 'Source Sans 3', -apple-system, sans-serif; font-size: 13px; font-weight: 600; color: var(--cor-texto-secundario); cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; -webkit-tap-highlight-color: transparent; min-height: 44px; min-width: 44px; text-align: center; }
+        .btn-vel:active { transform: scale(0.95); }
+        .btn-vel.ativo { background: var(--cor-destaque); border-color: var(--cor-destaque); color: #fff; }
+        .intro-cadeia p { font-size: 14px; color: var(--cor-texto-secundario); line-height: 1.65; margin-bottom: 12px; }
+        .intro-cadeia p:last-child { margin-bottom: 0; }
+        .intro-cadeia strong { color: var(--cor-texto); }
+        .intro-exemplo { margin-top: 14px; padding: 14px 16px; background: #f0f6f4; border-radius: 8px; border-left: 3px solid var(--cor-plantas); }
+        .intro-exemplo p { margin-bottom: 8px; }
+        .intro-exemplo p:last-child { margin-bottom: 0; }
+        .intro-fluxo { display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; margin: 12px 0; font-size: 13px; font-weight: 600; }
+        .intro-fluxo-item { padding: 5px 8px; border-radius: 5px; color: #fff; font-size: 11px; white-space: nowrap; }
+        .intro-fluxo-seta { color: var(--cor-borda); font-size: 13px; }
+
+        @media (max-width: 480px) {
+            .container { padding: 16px 12px 32px; }
+            .card { padding: 16px; }
+            .painel-sim { padding: 12px; }
+            .painel-sim .card-titulo { font-size: 16px; }
+            .nivel-circulo { width: 42px; height: 42px; font-size: 10px; }
+            .seta-cadeia { font-size: 12px; }
+            .grafico-container { height: 200px; }
+            .grafico-loading { height: 200px; }
+            .sim-divisor { margin: 8px 0; }
+            .botoes-grupo { flex-direction: column; }
+            .btn { min-width: 100%; }
+            .controles-simulacao { flex-direction: column; align-items: stretch; }
+            .btn-pausar { justify-content: center; }
+            .velocidade-grupo { justify-content: center; }
+            .intro-fluxo { gap: 4px; }
+            .intro-fluxo-item { font-size: 10px; padding: 4px 6px; }
+            .legenda-custom { gap: 8px; }
+            .legenda-item { font-size: 10px; }
+            .previsao-etapa { font-size: 12.5px; }
+            header h1 { font-size: 22px; }
+        }
+        @media (max-width: 370px) {
+            .nivel-circulo { width: 36px; height: 36px; font-size: 9px; }
+            .nivel-nome { font-size: 10px; }
+            .card { padding: 12px; }
+            .painel-sim { padding: 10px; }
+            .btn-vel { padding: 8px 10px; min-width: 40px; font-size: 12px; }
+            .grafico-container { height: 180px; }
+            .grafico-loading { height: 180px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="etiqueta">Museu de Zoologia &middot; Projeto Didático</div>
+        <h1>O que acontece quando os anfíbios desaparecem?</h1>
+        <p>Use os controles abaixo para simular perturbações ambientais e observe como a cadeia trófica responde em tempo real.</p>
+    </header>
+    <div class="card intro-cadeia" style="padding: 20px;">
+        <div class="card-titulo">Antes de começar: o que é uma cadeia alimentar?</div>
+        <div class="card-subtitulo" style="margin-bottom: 14px;">Um guia rápido para entender a simulação</div>
+        <p>Na natureza, todos os seres vivos dependem uns dos outros para sobreviver. A <strong>cadeia alimentar</strong> (ou cadeia trófica) é a sequência que mostra quem come quem dentro de um ecossistema. A energia flui sempre na mesma direção: começa nos organismos que produzem seu próprio alimento e vai passando para os que se alimentam deles.</p>
+        <p>Essa cadeia é organizada em <strong>níveis tróficos</strong>. No primeiro nível estão os <strong>produtores</strong>, que transformam luz solar em energia (como plantas e algas). No segundo nível estão os <strong>herbívoros</strong>, que se alimentam dos produtores. Nos níveis seguintes estão os <strong>predadores</strong>, que se alimentam de outros animais.</p>
+        <p>O ponto fundamental é que <strong>todos os níveis estão conectados</strong>. Se uma população cresce ou diminui demais, as consequências se espalham por toda a cadeia — para cima e para baixo. Quando isso acontece por causa da remoção ou declínio de uma espécie, chamamos de <strong>cascata trófica</strong>.</p>
+        <div class="intro-exemplo">
+            <p><strong>Nesta simulação, a cadeia funciona assim:</strong></p>
+            <div class="intro-fluxo">
+                <span class="intro-fluxo-item" style="background: var(--cor-plantas);">Plantas e Algas</span>
+                <span class="intro-fluxo-seta">&rarr;</span>
+                <span class="intro-fluxo-item" style="background: var(--cor-insetos);">Insetos</span>
+                <span class="intro-fluxo-seta">&rarr;</span>
+                <span class="intro-fluxo-item" style="background: var(--cor-anfibios);">Anfíbios Adultos</span>
+                <span class="intro-fluxo-seta">&rarr;</span>
+                <span class="intro-fluxo-item" style="background: var(--cor-predadores);">Outros Predadores</span>
+            </div>
+            <p><strong>Plantas e Algas</strong> são a base — produzem energia a partir da luz solar. <strong>Insetos</strong> se alimentam das plantas. <strong>Anfíbios</strong> (como sapos e rãs) comem os insetos, controlando sua população. <strong>Predadores de topo</strong> (como serpentes e aves) se alimentam dos anfíbios.</p>
+            <p>Cada nível regula o seguinte. Se os anfíbios desaparecem, não há mais quem controle os insetos — e o ecossistema inteiro sofre as consequências. Experimente isso na simulação abaixo.</p>
+        </div>
+    </div>
+    <div class="card didatico">
+        <h3>Como funciona esta simulação?</h3>
+        <p>Esta simulação modela uma cadeia trófica simplificada com quatro níveis: <strong>Plantas e Algas</strong> (produtores), <strong>Insetos</strong> (herbívoros), <strong>Anfíbios</strong> (predadores intermediários, como sapos e rãs) e <strong>Predadores de Topo</strong> (como serpentes e aves).</p>
+        <p>As populações se regulam mutuamente: insetos comem plantas, anfíbios comem insetos, e predadores de topo comem anfíbios. Quando um nível é afetado, todo o ecossistema se desequilibra — um fenômeno chamado <strong>cascata trófica</strong>.</p>
+        <p>Os anfíbios ocupam uma posição central: sem eles, as populações de insetos explodem sem controle, devastando a vegetação. Isso já foi documentado na natureza — na América Central, o desaparecimento de anfíbios causou aumento de mosquitos e, consequentemente, de casos de malária em humanos.</p>
+    </div>
+    <!-- ══ PAINEL UNIFICADO DA SIMULAÇÃO ══ -->
+    <div class="card painel-sim">
+        <div class="card-titulo">Simulação Interativa</div>
+        <div class="card-subtitulo">Altere as condições ambientais e observe o impacto na cadeia trófica</div>
+
+        <!-- Populações -->
+        <div class="cadeia">
+            <div class="nivel-trofico"><div class="nivel-circulo plantas" id="circ-plantas"><span id="circ-val-p"></span></div><div class="nivel-nome">Plantas e<br>Algas</div><div class="nivel-pop" id="pop-plantas">—</div></div>
+            <div class="seta-cadeia">&rarr;</div>
+            <div class="nivel-trofico"><div class="nivel-circulo insetos" id="circ-insetos"><span id="circ-val-i"></span></div><div class="nivel-nome">Insetos</div><div class="nivel-pop" id="pop-insetos">—</div></div>
+            <div class="seta-cadeia">&rarr;</div>
+            <div class="nivel-trofico"><div class="nivel-circulo anfibios" id="circ-anfibios"><span id="circ-val-a"></span></div><div class="nivel-nome">Anfíbios</div><div class="nivel-pop" id="pop-anfibios">—</div></div>
+            <div class="seta-cadeia">&rarr;</div>
+            <div class="nivel-trofico"><div class="nivel-circulo predadores" id="circ-predadores"><span id="circ-val-s"></span></div><div class="nivel-nome">Predadores<br>de Topo</div><div class="nivel-pop" id="pop-predadores">—</div></div>
+        </div>
+
+        <!-- Gráfico -->
+        <div class="sim-divisor"></div>
+        <div class="controles-simulacao">
+            <button class="btn-pausar" id="btn-pausar"><span class="icone-pausar" id="icone-pausar"><span class="barra"></span><span class="barra"></span></span><span id="texto-pausar">Pausar</span></button>
+            <div class="velocidade-grupo">
+                <span class="velocidade-label">Velocidade:</span>
+                <button class="btn-vel" data-vel="2" id="vel-lenta">0.5x</button>
+                <button class="btn-vel ativo" data-vel="4" id="vel-normal">1x</button>
+                <button class="btn-vel" data-vel="10" id="vel-rapida">2.5x</button>
+            </div>
+        </div>
+        <div class="status-bar">
+            <div class="status-indicador"><div class="pulso" id="indicador-pulso"></div><span id="status-texto">Simulação em andamento</span></div>
+            <div class="tempo" id="tempo-display">Tempo: 0</div>
+        </div>
+        <div class="grafico-container" id="grafico-wrapper">
+            <div class="grafico-loading" id="grafico-loading">Carregando simulação...</div>
+            <canvas id="grafico" style="display:none;"></canvas>
+        </div>
+        <div class="legenda-custom">
+            <div class="legenda-item"><div class="legenda-cor" style="background:var(--cor-plantas)"></div>Plantas e Algas</div>
+            <div class="legenda-item"><div class="legenda-cor" style="background:var(--cor-insetos)"></div>Insetos</div>
+            <div class="legenda-item"><div class="legenda-cor" style="background:var(--cor-anfibios)"></div>Anfíbios</div>
+            <div class="legenda-item"><div class="legenda-cor" style="background:var(--cor-predadores)"></div>Predadores</div>
+        </div>
+
+        <!-- Controles -->
+        <div class="sim-divisor"></div>
+        <div class="controle-grupo">
+            <div class="controle-label"><span>Nível de Poluição</span><span class="valor" id="val-poluicao">0%</span></div>
+            <div class="controle-descricao">Anfíbios são os mais sensíveis à poluição por causa da pele permeável. Ao aumentar a poluição, eles são os primeiros a sofrer.</div>
+            <input type="range" class="slider-poluicao" id="slider-poluicao" min="0" max="100" value="0">
+        </div>
+        <div class="botoes-grupo">
+            <button class="btn btn-remover" id="btn-remover">Remover todos os anfíbios</button>
+            <button class="btn btn-reiniciar" id="btn-reiniciar">Reiniciar simulação</button>
+        </div>
+        <div class="feedback" id="feedback">Ecossistema em equilíbrio. Use os controles acima para simular perturbações ambientais e observe o que acontece com cada nível da cadeia trófica.</div>
+    </div>
+    <div class="card previsao-box">
+        <h3>O que esperar de cada perturbação?</h3>
+        <div class="previsao-cenario">
+            <div class="previsao-cenario-titulo"><div class="marcador" style="background: var(--cor-alerta)"></div>Aumentar a poluição</div>
+            <div class="previsao-etapa">1. Os anfíbios declinam primeiro — sua pele permeável absorve poluentes diretamente da água e do solo, tornando-os 5 vezes mais vulneráveis que os outros grupos.</div>
+            <div class="previsao-etapa">2. Com menos anfíbios predando, a população de insetos cresce sem controle.</div>
+            <div class="previsao-etapa">3. A explosão de insetos consome as plantas em excesso, reduzindo a vegetação.</div>
+            <div class="previsao-etapa">4. Os predadores de topo (serpentes, aves) também declinam, pois dependem dos anfíbios como alimento.</div>
+            <div class="previsao-etapa">5. O ecossistema inteiro se desestabiliza — por isso, cientistas usam anfíbios como bioindicadores: quando eles somem, é sinal de que o ambiente está contaminado.</div>
+        </div>
+        <div class="previsao-cenario">
+            <div class="previsao-cenario-titulo"><div class="marcador" style="background: var(--cor-anfibios)"></div>Remover todos os anfíbios</div>
+            <div class="previsao-etapa">1. Sem predadores naturais, a população de insetos dispara rapidamente.</div>
+            <div class="previsao-etapa">2. O excesso de herbivoria devasta as plantas e algas — a base do ecossistema entra em colapso.</div>
+            <div class="previsao-etapa">3. Os predadores de topo perdem sua principal fonte de alimento e entram em declínio.</div>
+            <div class="previsao-etapa">4. Com a base vegetal destruída, os próprios insetos começam a morrer de fome.</div>
+            <div class="previsao-etapa">5. Esse efeito em cadeia — onde a remoção de um grupo afeta todos os outros — é chamado de cascata trófica. Na América Central, o desaparecimento real de anfíbios levou ao aumento de mosquitos e de casos de malária.</div>
+        </div>
+    </div>
+    <div class="card didatico">
+        <h3>Por que os anfíbios são tão importantes?</h3>
+        <p><span class="dado-destaque">Bioindicadores:</span> Anfíbios possuem pele permeável e ciclo de vida dividido entre água e terra. Isso os torna extremamente sensíveis à poluição, às mudanças climáticas e à degradação ambiental. Quando anfíbios começam a desaparecer de um local, é sinal de que o ecossistema está em perigo.</p>
+        <p><span class="dado-destaque">Controle de pragas:</span> Sapos e rãs adultos consomem grandes quantidades de insetos diariamente, incluindo mosquitos transmissores de doenças. Seus girinos controlam o crescimento de algas em rios e lagoas.</p>
+        <p><span class="dado-destaque">Elo da cadeia alimentar:</span> São alimento essencial para serpentes, aves, peixes e mamíferos. Seu desaparecimento priva predadores de uma fonte proteica fundamental.</p>
+    </div>
+    <div class="card didatico">
+        <h3>A crise global dos anfíbios</h3>
+        <p>Atualmente, <span class="dado-destaque">40,7% das espécies de anfíbios</span> estão ameaçadas de extinção — a maior proporção entre todos os vertebrados. As principais causas são a destruição de habitats, a poluição, as mudanças climáticas e uma doença fúngica devastadora chamada quitridiomicose.</p>
+        <p>O Brasil é o <span class="dado-destaque">país com maior diversidade de anfíbios do mundo</span>, com cerca de 1.188 espécies conhecidas. Muitas delas existem apenas aqui e em nenhum outro lugar do planeta. Proteger os anfíbios brasileiros é proteger um patrimônio biológico único e insubstituível.</p>
+    </div>
+    <footer>
+        <p>Simulação baseada em modelo de Lotka-Volterra com crescimento logístico.</p>
+        <p class="fonte">Dados: Luedtke et al. (2023), Nature; Springborn et al. (2022), Environmental Research Letters; Segalla et al. (2021).</p>
+    </footer>
+</div>
+<script>
+function iniciarSimulacao(){
+    var PARAMS={rP:1,KP:1e3,a1:.00333,muP:.05,e1:.15,d1:.1,a2:.003,muI:.08,e2:.15,d2:.03,a3:.0025,muA:.4,e3:.15,d3:.01875,muS:.12};
+    var INIT={P:500,I:150,A:50,S:15};
+    var estado={P:INIT.P,I:INIT.I,A:INIT.A,S:INIT.S,poluicao:0,habitat:1,tempo:0,anfibiosRemovidos:false,rodando:true};
+    var MAX_PONTOS=300;
+    var historico={tempos:[],plantas:[],insetos:[],anfibios:[],predadores:[]};
+
+    function derivadas(P,I,A,S,pol,hab){
+        var K=PARAMS.KP*Math.max(hab,.05);
+        return{dP:PARAMS.rP*P*(1-P/K)-PARAMS.a1*P*I-PARAMS.muP*pol*P,
+        dI:PARAMS.e1*PARAMS.a1*P*I-PARAMS.d1*I-PARAMS.a2*I*A-PARAMS.muI*pol*I,
+        dA:PARAMS.e2*PARAMS.a2*I*A-PARAMS.d2*A-PARAMS.a3*A*S-PARAMS.muA*pol*A,
+        dS:PARAMS.e3*PARAMS.a3*A*S-PARAMS.d3*S-PARAMS.muS*pol*S};
+    }
+    function passo(dt){
+        var P=estado.P,I=estado.I,A=estado.A,S=estado.S,pol=estado.poluicao,hab=estado.habitat;
+        var c=function(v){return Math.max(0,v)};
+        var k1=derivadas(P,I,A,S,pol,hab);
+        var k2=derivadas(c(P+k1.dP*dt/2),c(I+k1.dI*dt/2),c(A+k1.dA*dt/2),c(S+k1.dS*dt/2),pol,hab);
+        var k3=derivadas(c(P+k2.dP*dt/2),c(I+k2.dI*dt/2),c(A+k2.dA*dt/2),c(S+k2.dS*dt/2),pol,hab);
+        var k4=derivadas(c(P+k3.dP*dt),c(I+k3.dI*dt),c(A+k3.dA*dt),c(S+k3.dS*dt),pol,hab);
+        estado.P=c(Math.min(P+(k1.dP+2*k2.dP+2*k3.dP+k4.dP)*dt/6,1200));
+        estado.I=c(Math.min(I+(k1.dI+2*k2.dI+2*k3.dI+k4.dI)*dt/6,800));
+        estado.A=c(Math.min(A+(k1.dA+2*k2.dA+2*k3.dA+k4.dA)*dt/6,300));
+        estado.S=c(Math.min(S+(k1.dS+2*k2.dS+2*k3.dS+k4.dS)*dt/6,150));
+        if(estado.anfibiosRemovidos)estado.A=0;
+        if(estado.P<.5)estado.P=0;if(estado.I<.5)estado.I=0;
+        if(estado.A<.5&&!estado.anfibiosRemovidos)estado.A=0;if(estado.S<.5)estado.S=0;
+        estado.tempo+=dt;
+    }
+
+    document.getElementById('grafico-loading').style.display='none';
+    var canvasEl=document.getElementById('grafico');canvasEl.style.display='block';
+    var ctx=canvasEl.getContext('2d');
+    var corSet=['#4a7c59','#c4883a','#2e7d96','#8b4049'];
+    var bgSet=['rgba(74,124,89,0.08)','rgba(196,136,58,0.06)','rgba(46,125,150,0.06)','rgba(139,64,73,0.06)'];
+    var nomes=['Plantas e Algas','Insetos','Anfíbios','Predadores'];
+    var grafico=new Chart(ctx,{type:'line',data:{labels:[],datasets:nomes.map(function(n,i){return{label:n,data:[],borderColor:corSet[i],backgroundColor:bgSet[i],borderWidth:2.5,pointRadius:0,fill:true,tension:.3}})},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(44,44,44,0.92)',padding:10,cornerRadius:6,callbacks:{label:function(c){return c.dataset.label+': '+Math.round(c.parsed.y)}}}},scales:{x:{display:true,ticks:{display:false},grid:{display:false}},y:{display:true,beginAtZero:true,suggestedMax:700,ticks:{maxTicksLimit:5,font:{size:10},color:'#999'},grid:{color:'rgba(0,0,0,0.04)',drawBorder:false}}}}});
+
+    var E={popP:document.getElementById('pop-plantas'),popI:document.getElementById('pop-insetos'),popA:document.getElementById('pop-anfibios'),popS:document.getElementById('pop-predadores'),circP:document.getElementById('circ-plantas'),circI:document.getElementById('circ-insetos'),circA:document.getElementById('circ-anfibios'),circS:document.getElementById('circ-predadores'),valP:document.getElementById('circ-val-p'),valI:document.getElementById('circ-val-i'),valA:document.getElementById('circ-val-a'),valS:document.getElementById('circ-val-s'),tempo:document.getElementById('tempo-display'),fb:document.getElementById('feedback'),pulso:document.getElementById('indicador-pulso'),status:document.getElementById('status-texto')};
+
+    function atualizarCirculo(el,elVal,pop,popMax){var s=.6+.5*Math.min(pop/popMax,1);el.style.transform='scale('+s.toFixed(2)+')';el.style.opacity=pop<1?'0.25':'1';elVal.textContent=Math.round(pop)}
+    function atualizarUI(){
+        E.popP.textContent=Math.round(estado.P)+' ind.';E.popI.textContent=Math.round(estado.I)+' ind.';
+        E.popA.textContent=Math.round(estado.A)+' ind.';E.popS.textContent=Math.round(estado.S)+' ind.';
+        atualizarCirculo(E.circP,E.valP,estado.P,600);atualizarCirculo(E.circI,E.valI,estado.I,250);
+        atualizarCirculo(E.circA,E.valA,estado.A,80);atualizarCirculo(E.circS,E.valS,estado.S,25);
+        E.tempo.textContent='Tempo: '+Math.floor(estado.tempo);atualizarFeedback();
+    }
+    function atualizarFeedback(){
+        var P=estado.P,I=estado.I,A=estado.A,S=estado.S,pol=estado.poluicao,t='',al=false;
+        if(estado.anfibiosRemovidos&&A<1){al=true;
+            if(I>250)t='<strong>Cascata trófica em andamento.</strong> Sem anfíbios para controlar os insetos, a população de insetos disparou. Observe como isso pressiona as plantas — e como os predadores de topo também sofrem, pois perderam sua principal fonte de alimento.';
+            else if(P<80&&I>80)t='<strong>Ecossistema em colapso.</strong> A explosão de insetos devastou a vegetação. Com poucas plantas, os próprios insetos começam a declinar. Todo o sistema foi desestabilizado pela remoção de um único grupo: os anfíbios.';
+            else if(S<3)t='<strong>Os predadores de topo estão desaparecendo.</strong> Sem anfíbios como presa, serpentes e aves predadoras perdem sua fonte de energia. A cadeia trófica foi rompida de baixo para cima.';
+            else t='<strong>Anfíbios removidos.</strong> Observe como a ausência de um único grupo de organismos desestabiliza toda a cadeia trófica. Este é o princípio da cascata trófica.';
+        }else if(pol>.6){al=true;t=A<10?'<strong>Poluição crítica.</strong> Os anfíbios, por terem pele permeável que absorve poluentes diretamente, foram os primeiros a declinar. Na natureza, quando anfíbios desaparecem de um ambiente, é sinal de alerta: o ecossistema está contaminado.':'<strong>Poluição elevada.</strong> Os anfíbios estão sendo os mais afetados — sua sensibilidade faz deles verdadeiros bioindicadores. Cientistas monitoram populações de anfíbios para avaliar a saúde ambiental.';
+        }else if(pol>.25){t='<strong>Poluição moderada.</strong> Note que os anfíbios são o grupo que mais sofre proporcionalmente. Isso acontece porque substâncias tóxicas penetram facilmente pela sua pele fina e permeável, atingindo-os antes dos demais grupos.';
+        }else if(P<30&&I<30&&A<3&&S<2){t='<strong>Colapso total do ecossistema.</strong> Todas as populações entraram em declínio irreversível. Na natureza, ecossistemas podem levar décadas ou séculos para se recuperar — se é que se recuperam.';al=true;
+        }else{var eq=Math.abs(P-500)<200&&Math.abs(I-150)<80&&A>15&&S>3;t=eq?'Ecossistema em equilíbrio. As quatro populações se regulam mutuamente: anfíbios controlam insetos, que controlam plantas, enquanto predadores controlam anfíbios. Use os controles para perturbar esse equilíbrio.':'O ecossistema está se ajustando. As populações oscilam naturalmente até encontrar um novo equilíbrio. Na natureza, essas oscilações podem durar anos.';}
+        E.fb.innerHTML=t;E.fb.classList.toggle('alerta',al);
+    }
+    function atualizarGrafico(){
+        historico.tempos.push(Math.floor(estado.tempo));historico.plantas.push(estado.P);historico.insetos.push(estado.I);historico.anfibios.push(estado.A);historico.predadores.push(estado.S);
+        if(historico.tempos.length>MAX_PONTOS){historico.tempos.shift();historico.plantas.shift();historico.insetos.shift();historico.anfibios.shift();historico.predadores.shift();}
+        grafico.data.labels=historico.tempos;grafico.data.datasets[0].data=historico.plantas;grafico.data.datasets[1].data=historico.insetos;grafico.data.datasets[2].data=historico.anfibios;grafico.data.datasets[3].data=historico.predadores;grafico.update('none');
+    }
+
+    var sliderPol=document.getElementById('slider-poluicao'),valPol=document.getElementById('val-poluicao'),btnRem=document.getElementById('btn-remover'),btnRes=document.getElementById('btn-reiniciar');
+    sliderPol.addEventListener('input',function(){estado.poluicao=this.value/100;valPol.textContent=this.value+'%'});
+    btnRem.addEventListener('click',function(){estado.anfibiosRemovidos=true;estado.A=0;this.style.opacity='0.5';this.textContent='Anfíbios removidos'});
+
+    var btnPau=document.getElementById('btn-pausar'),icoPau=document.getElementById('icone-pausar'),txtPau=document.getElementById('texto-pausar'),btVel=document.querySelectorAll('.btn-vel');
+    var pausado=false,passosPorFrame=4;
+
+    btnPau.addEventListener('click',function(){
+        pausado=!pausado;
+        if(pausado){txtPau.textContent='Continuar';icoPau.innerHTML='<span class="triangulo"></span>';E.pulso.classList.add('parado');E.status.textContent='Simulação pausada';}
+        else{txtPau.textContent='Pausar';icoPau.innerHTML='<span class="barra"></span><span class="barra"></span>';if(estado.rodando){E.pulso.classList.remove('parado');E.status.textContent='Simulação em andamento';}}
+    });
+    btVel.forEach(function(b){b.addEventListener('click',function(){btVel.forEach(function(x){x.classList.remove('ativo')});this.classList.add('ativo');passosPorFrame=parseInt(this.getAttribute('data-vel'))})});
+
+    btnRes.addEventListener('click',function(){
+        estado.P=INIT.P;estado.I=INIT.I;estado.A=INIT.A;estado.S=INIT.S;estado.poluicao=0;estado.habitat=1;estado.tempo=0;estado.anfibiosRemovidos=false;estado.rodando=true;
+        sliderPol.value=0;valPol.textContent='0%';btnRem.style.opacity='1';btnRem.textContent='Remover todos os anfíbios';
+        historico={tempos:[],plantas:[],insetos:[],anfibios:[],predadores:[]};
+        E.pulso.classList.remove('parado');E.status.textContent='Simulação em andamento';
+        pausado=false;txtPau.textContent='Pausar';icoPau.innerHTML='<span class="barra"></span><span class="barra"></span>';
+        btVel.forEach(function(b){b.classList.remove('ativo')});document.getElementById('vel-normal').classList.add('ativo');passosPorFrame=4;
+        atualizarUI();atualizarGrafico();
+    });
+
+    var DT=.05,frameCount=0;
+    function loop(){
+        if(!document.hidden&&estado.rodando&&!pausado){for(var i=0;i<passosPorFrame;i++)passo(DT);frameCount++;if(frameCount%3===0)atualizarGrafico();atualizarUI();
+            if(estado.P<1&&estado.I<1&&estado.A<1&&estado.S<1){estado.rodando=false;E.pulso.classList.add('parado');E.status.textContent='Ecossistema colapsou';}}
+        requestAnimationFrame(loop);
+    }
+    atualizarUI();atualizarGrafico();requestAnimationFrame(loop);
+}
+
+if(typeof Chart!=='undefined'){iniciarSimulacao()}else{document.addEventListener('DOMContentLoaded',function(){var t=0,iv=setInterval(function(){t++;if(typeof Chart!=='undefined'){clearInterval(iv);iniciarSimulacao()}else if(t>100){clearInterval(iv);document.getElementById('grafico-loading').textContent='Não foi possível carregar a simulação. Verifique sua conexão com a internet.'}},100)})}
+</script>
+</body>
+</html>
