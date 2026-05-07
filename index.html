@@ -1,397 +1,3004 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>Simulação: Anfíbios e a Cadeia Trófica</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" as="style">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:wght@300;400;500;600;700&display=swap">
-    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-    <style>
-        :root {
-            --cor-fundo: #f4f1eb;
-            --cor-fundo-card: #ffffff;
-            --cor-texto: #2c2c2c;
-            --cor-texto-secundario: #5a5a5a;
-            --cor-borda: #d9d4cb;
-            --cor-plantas: #4a7c59;
-            --cor-insetos: #c4883a;
-            --cor-anfibios: #2e7d96;
-            --cor-predadores: #8b4049;
-            --cor-alerta: #b8432f;
-            --cor-destaque: #2e7d96;
-            --sombra-sutil: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
-            --raio: 10px;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-        body {
-            font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--cor-fundo); color: var(--cor-texto);
-            line-height: 1.6; -webkit-font-smoothing: antialiased;
-            min-height: 100vh; overflow-x: hidden;
-        }
-        .container {
-            max-width: 680px; margin: 0 auto;
-            padding: 20px 16px 40px;
-            padding-left: max(16px, env(safe-area-inset-left));
-            padding-right: max(16px, env(safe-area-inset-right));
-            padding-bottom: max(40px, env(safe-area-inset-bottom));
-        }
-        header { text-align: center; padding: 28px 0 24px; border-bottom: 1px solid var(--cor-borda); margin-bottom: 24px; }
-        header .etiqueta { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 1.8px; text-transform: uppercase; color: var(--cor-destaque); margin-bottom: 12px; }
-        header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: clamp(22px, 5vw, 32px); font-weight: 400; line-height: 1.25; color: var(--cor-texto); margin-bottom: 10px; }
-        header p { font-size: 15px; color: var(--cor-texto-secundario); max-width: 480px; margin: 0 auto; line-height: 1.55; }
-        .card { background: var(--cor-fundo-card); border: 1px solid var(--cor-borda); border-radius: var(--raio); padding: 20px; margin-bottom: 16px; box-shadow: var(--sombra-sutil); }
-        .card-titulo { font-family: 'DM Serif Display', Georgia, serif; font-size: 18px; font-weight: 400; margin-bottom: 4px; color: var(--cor-texto); }
-        .card-subtitulo { font-size: 13px; color: var(--cor-texto-secundario); margin-bottom: 16px; line-height: 1.5; }
-        .painel-sim { padding: 16px; }
-        .painel-sim .card-subtitulo { margin-bottom: 8px; }
-        .sim-divisor { height: 1px; background: var(--cor-borda); margin: 10px 0; }
-        .cadeia { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 10px 4px; flex-wrap: nowrap; }
-        .nivel-trofico { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; min-width: 0; }
-        .nivel-circulo { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; margin-bottom: 4px; transition: transform 0.4s ease, opacity 0.4s ease; }
-        .nivel-circulo.plantas { background-color: var(--cor-plantas); }
-        .nivel-circulo.insetos { background-color: var(--cor-insetos); }
-        .nivel-circulo.anfibios { background-color: var(--cor-anfibios); }
-        .nivel-circulo.predadores { background-color: var(--cor-predadores); }
-        .nivel-nome { font-size: 11px; font-weight: 600; color: var(--cor-texto); line-height: 1.3; }
-        .nivel-pop { font-size: 10px; color: var(--cor-texto-secundario); font-variant-numeric: tabular-nums; }
-        .seta-cadeia { font-size: 14px; color: var(--cor-borda); flex-shrink: 0; margin-top: -18px; }
-        .grafico-container { position: relative; width: 100%; height: 240px; margin: 4px 0; }
-        .grafico-container canvas { width: 100% !important; height: 100% !important; }
-        .grafico-loading { display: flex; align-items: center; justify-content: center; height: 240px; color: var(--cor-texto-secundario); font-size: 14px; }
-        .controle-grupo { margin-bottom: 18px; }
-        .controle-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-        .controle-label span:first-child { font-size: 14px; font-weight: 600; color: var(--cor-texto); }
-        .controle-label .valor { font-size: 13px; font-weight: 500; color: var(--cor-destaque); font-variant-numeric: tabular-nums; }
-        .controle-descricao { font-size: 12.5px; color: var(--cor-texto-secundario); margin-bottom: 10px; line-height: 1.5; }
-        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 48px; background: transparent; cursor: pointer; padding: 0; touch-action: none; }
-        input[type="range"]::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: var(--cor-borda); }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 30px; height: 30px; border-radius: 50%; background: var(--cor-destaque); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25); margin-top: -11px; }
-        input[type="range"]::-moz-range-track { height: 8px; border-radius: 4px; background: var(--cor-borda); border: none; }
-        input[type="range"]::-moz-range-thumb { width: 30px; height: 30px; border-radius: 50%; background: var(--cor-destaque); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
-        input[type="range"].slider-poluicao::-webkit-slider-thumb { background: var(--cor-alerta); }
-        input[type="range"].slider-poluicao::-moz-range-thumb { background: var(--cor-alerta); }
-        .botoes-grupo { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-        .btn { flex: 1; min-width: 140px; min-height: 48px; padding: 12px 16px; border: none; border-radius: 8px; font-family: 'Source Sans 3', -apple-system, sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; -webkit-tap-highlight-color: transparent; }
-        .btn:active { transform: scale(0.97); }
-        .btn-remover { background: var(--cor-alerta); color: #fff; }
-        .btn-reiniciar { background: var(--cor-texto); color: #fff; }
-        .feedback { margin-top: 12px; padding: 12px 14px; border-radius: 8px; font-size: 13px; line-height: 1.55; color: var(--cor-texto); background: #faf6f0; border-left: 3px solid var(--cor-destaque); min-height: 44px; transition: background-color 0.3s ease, border-color 0.3s ease; }
-        .feedback.alerta { border-left-color: var(--cor-alerta); background: #fdf5f3; }
-        .feedback strong { font-weight: 600; }
-        .didatico { padding: 20px; }
-        .previsao-box { padding: 20px; }
-        .previsao-box h3 { font-family: 'DM Serif Display', Georgia, serif; font-size: 17px; font-weight: 400; margin-bottom: 14px; }
-        .previsao-cenario { margin-bottom: 16px; padding: 14px 16px; border-radius: 8px; background: #faf6f0; }
-        .previsao-cenario:last-child { margin-bottom: 0; }
-        .previsao-cenario-titulo { font-size: 14px; font-weight: 700; color: var(--cor-texto); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-        .previsao-cenario-titulo .marcador { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .previsao-etapa { font-size: 13px; color: var(--cor-texto-secundario); line-height: 1.6; padding-left: 16px; position: relative; margin-bottom: 4px; }
-        .previsao-etapa:last-child { margin-bottom: 0; }
-        .previsao-etapa::before { content: ''; position: absolute; left: 0; top: 8px; width: 5px; height: 1px; background: var(--cor-borda); }
-        .didatico h3 { font-family: 'DM Serif Display', Georgia, serif; font-size: 17px; font-weight: 400; margin-bottom: 10px; }
-        .didatico p { font-size: 14px; color: var(--cor-texto-secundario); line-height: 1.65; margin-bottom: 12px; }
-        .didatico p:last-child { margin-bottom: 0; }
-        .dado-destaque { display: inline-block; font-weight: 700; color: var(--cor-texto); }
-        .legenda-custom { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; margin-bottom: 4px; }
-        .legenda-item { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: var(--cor-texto-secundario); }
-        .legenda-cor { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-        .status-bar { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--cor-texto-secundario); margin-bottom: 12px; padding: 0 2px; }
-        .status-bar .tempo { font-variant-numeric: tabular-nums; }
-        .status-indicador { display: flex; align-items: center; gap: 5px; }
-        .pulso { width: 7px; height: 7px; border-radius: 50%; background: var(--cor-plantas); animation: pulsar 1.5s ease-in-out infinite; }
-        .pulso.parado { animation: none; background: var(--cor-alerta); }
-        @keyframes pulsar { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        footer { text-align: center; padding: 24px 0 8px; border-top: 1px solid var(--cor-borda); margin-top: 8px; }
-        footer p { font-size: 12px; color: var(--cor-texto-secundario); line-height: 1.6; }
-        footer .fonte { font-style: italic; }
-        .controles-simulacao { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .btn-pausar { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border: 1.5px solid var(--cor-borda); border-radius: 7px; background: var(--cor-fundo-card); font-family: 'Source Sans 3', -apple-system, sans-serif; font-size: 13px; font-weight: 600; color: var(--cor-texto); cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease; -webkit-tap-highlight-color: transparent; min-height: 44px; white-space: nowrap; }
-        .btn-pausar:active { transform: scale(0.97); }
-        .btn-pausar .icone-pausar { display: inline-flex; gap: 2px; }
-        .btn-pausar .barra { width: 3px; height: 12px; background: currentColor; border-radius: 1px; }
-        .btn-pausar .triangulo { width: 0; height: 0; border-left: 9px solid currentColor; border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
-        .velocidade-grupo { display: flex; align-items: center; gap: 4px; flex: 1; }
-        .velocidade-label { font-size: 12px; color: var(--cor-texto-secundario); font-weight: 500; white-space: nowrap; margin-right: 4px; }
-        .btn-vel { padding: 8px 14px; border: 1.5px solid var(--cor-borda); border-radius: 6px; background: var(--cor-fundo-card); font-family: 'Source Sans 3', -apple-system, sans-serif; font-size: 13px; font-weight: 600; color: var(--cor-texto-secundario); cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; -webkit-tap-highlight-color: transparent; min-height: 44px; min-width: 44px; text-align: center; }
-        .btn-vel:active { transform: scale(0.95); }
-        .btn-vel.ativo { background: var(--cor-destaque); border-color: var(--cor-destaque); color: #fff; }
-        .intro-cadeia p { font-size: 14px; color: var(--cor-texto-secundario); line-height: 1.65; margin-bottom: 12px; }
-        .intro-cadeia p:last-child { margin-bottom: 0; }
-        .intro-cadeia strong { color: var(--cor-texto); }
-        .intro-exemplo { margin-top: 14px; padding: 14px 16px; background: #f0f6f4; border-radius: 8px; border-left: 3px solid var(--cor-plantas); }
-        .intro-exemplo p { margin-bottom: 8px; }
-        .intro-exemplo p:last-child { margin-bottom: 0; }
-        .intro-fluxo { display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; margin: 12px 0; font-size: 13px; font-weight: 600; }
-        .intro-fluxo-item { padding: 5px 8px; border-radius: 5px; color: #fff; font-size: 11px; white-space: nowrap; }
-        .intro-fluxo-seta { color: var(--cor-borda); font-size: 13px; }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#143642">
+  <title>Da Poça à Floresta</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07191d;
+      --panel: rgba(7, 25, 29, 0.82);
+      --panel-strong: rgba(6, 19, 24, 0.94);
+      --ink: #f5f7ed;
+      --muted: #bfd1c3;
+      --line: rgba(245, 247, 237, 0.18);
+      --water: #2c91a7;
+      --leaf: #5ba86e;
+      --sun: #ffd166;
+      --danger: #ef476f;
+      --mud: #b8834e;
+      --good: #8de37f;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+    }
 
-        @media (max-width: 480px) {
-            .container { padding: 16px 12px 32px; }
-            .card { padding: 16px; }
-            .painel-sim { padding: 12px; }
-            .painel-sim .card-titulo { font-size: 16px; }
-            .nivel-circulo { width: 42px; height: 42px; font-size: 10px; }
-            .seta-cadeia { font-size: 12px; }
-            .grafico-container { height: 200px; }
-            .grafico-loading { height: 200px; }
-            .sim-divisor { margin: 8px 0; }
-            .botoes-grupo { flex-direction: column; }
-            .btn { min-width: 100%; }
-            .controles-simulacao { flex-direction: column; align-items: stretch; }
-            .btn-pausar { justify-content: center; }
-            .velocidade-grupo { justify-content: center; }
-            .intro-fluxo { gap: 4px; }
-            .intro-fluxo-item { font-size: 10px; padding: 4px 6px; }
-            .legenda-custom { gap: 8px; }
-            .legenda-item { font-size: 10px; }
-            .previsao-etapa { font-size: 12.5px; }
-            header h1 { font-size: 22px; }
-        }
-        @media (max-width: 370px) {
-            .nivel-circulo { width: 36px; height: 36px; font-size: 9px; }
-            .nivel-nome { font-size: 10px; }
-            .card { padding: 12px; }
-            .painel-sim { padding: 10px; }
-            .btn-vel { padding: 8px 10px; min-width: 40px; font-size: 12px; }
-            .grafico-container { height: 180px; }
-            .grafico-loading { height: 180px; }
-        }
-    </style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      position: fixed;
+      inset: 0;
+      touch-action: none;
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    #app {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      background:
+        radial-gradient(circle at 18% 16%, rgba(141, 227, 127, 0.13), transparent 26%),
+        linear-gradient(180deg, #143642 0%, #0b4c63 44%, #163f44 100%);
+    }
+
+    #game {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .hud {
+      position: relative;
+      z-index: 4;
+      display: grid;
+      gap: 8px;
+      padding: max(12px, env(safe-area-inset-top)) 12px 0;
+      pointer-events: none;
+    }
+
+    .titleRow {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(22px, 6.4vw, 40px);
+      line-height: 0.96;
+      letter-spacing: 0;
+      text-shadow: 0 3px 16px rgba(0, 0, 0, 0.36);
+    }
+
+    .subtitle {
+      margin-top: 5px;
+      max-width: 24rem;
+      color: var(--muted);
+      font-size: clamp(12px, 3.2vw, 15px);
+      line-height: 1.25;
+      text-shadow: 0 2px 9px rgba(0, 0, 0, 0.42);
+    }
+
+    .iconButton {
+      pointer-events: auto;
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .iconButton:active,
+    .actionButton:active,
+    .startButton:active {
+      transform: scale(0.97);
+    }
+
+    .bars {
+      display: grid;
+      gap: 7px;
+      width: min(100%, 430px);
+    }
+
+    .barLine {
+      display: grid;
+      grid-template-columns: 74px 1fr 38px;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 9px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(12px);
+    }
+
+    .barLine span {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .barTrack {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.13);
+    }
+
+    .barFill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      transition: width 180ms ease;
+    }
+
+    #biomassFill {
+      background: linear-gradient(90deg, #8de37f, #38d8b6);
+    }
+
+    .counter {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .objectivePanel {
+      width: min(100%, 470px);
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255, 209, 102, 0.92);
+      color: #14221c;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.36);
+      backdrop-filter: blur(8px);
+    }
+
+    .objectivePanel.isHidden {
+      display: none;
+    }
+
+    .objectivePanel span {
+      display: block;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      opacity: 0.72;
+    }
+
+    .objectivePanel strong {
+      display: block;
+      margin-top: 2px;
+      font-size: clamp(14px, 3.8vw, 18px);
+      line-height: 1.15;
+    }
+
+    .lessonOverlay {
+      position: fixed;
+      z-index: 9;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(255, 209, 102, 0.18), transparent 34%),
+        rgba(3, 13, 16, 0.56);
+      pointer-events: auto;
+      backdrop-filter: blur(5px);
+    }
+
+    .lessonOverlay.isHidden {
+      display: none;
+    }
+
+    .lessonCard {
+      width: min(100%, 620px);
+      padding: clamp(18px, 5vw, 30px);
+      border-radius: 8px;
+      background: rgba(5, 23, 28, 0.96);
+      border: 1px solid rgba(255, 209, 102, 0.38);
+      box-shadow: 0 22px 70px rgba(0, 0, 0, 0.48);
+    }
+
+    .lessonKicker {
+      margin-bottom: 10px;
+      color: var(--sun);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .lessonText {
+      color: #f8fbf0;
+      font-size: clamp(18px, 5vw, 28px);
+      line-height: 1.2;
+    }
+
+    .lessonText strong {
+      color: var(--sun);
+      display: block;
+      margin-bottom: 7px;
+      font-size: 0.9em;
+      line-height: 1.05;
+    }
+
+    .lessonText p {
+      margin: 0.55em 0 0;
+    }
+
+    .termButton {
+      display: inline;
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+      color: #a9fff0;
+      font-weight: 850;
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+    }
+
+    .lessonButton {
+      width: 100%;
+      min-height: 52px;
+      margin-top: 20px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #8de37f, #38d8b6);
+      color: #062421;
+      font-weight: 850;
+      box-shadow: var(--shadow);
+    }
+
+    .glossaryOverlay {
+      position: fixed;
+      z-index: 12;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(2, 10, 13, 0.58);
+      backdrop-filter: blur(4px);
+    }
+
+    .glossaryOverlay.isHidden {
+      display: none;
+    }
+
+    .glossaryCard {
+      width: min(100%, 440px);
+      padding: 18px;
+      border-radius: 8px;
+      background: rgba(250, 255, 240, 0.96);
+      color: #10221f;
+      box-shadow: var(--shadow);
+    }
+
+    .glossaryCard h3 {
+      margin: 0;
+      color: #0b4c63;
+      font-size: 22px;
+      line-height: 1.05;
+    }
+
+    .glossaryCard p {
+      margin: 10px 0 16px;
+      color: #213d36;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .controls {
+      position: relative;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: 1fr 128px;
+      grid-template-areas: "actions stick";
+      align-items: end;
+      gap: 12px;
+      min-height: 112px;
+      padding: 0 14px max(12px, env(safe-area-inset-bottom));
+      pointer-events: none;
+    }
+
+    .stick {
+      grid-area: stick;
+      justify-self: end;
+      pointer-events: auto;
+      position: relative;
+      width: 118px;
+      height: 118px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04) 55%, rgba(0, 0, 0, 0.16));
+      border: 1px solid var(--line);
+      box-shadow: inset 0 0 22px rgba(255, 255, 255, 0.05), var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 54px;
+      height: 54px;
+      margin: -27px 0 0 -27px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.13));
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      box-shadow: 0 9px 24px rgba(0, 0, 0, 0.22);
+      transform: translate(0, 0);
+    }
+
+    .actionPanel {
+      grid-area: actions;
+      justify-self: center;
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .actionButton {
+      pointer-events: auto;
+      min-width: 72px;
+      min-height: 48px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(5, 30, 37, 0.82);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      backdrop-filter: blur(10px);
+    }
+
+    .actionButton b {
+      display: block;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .actionButton small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1;
+    }
+
+    .actionButton.isGuided {
+      animation: guidePulse 780ms ease-in-out infinite alternate;
+    }
+
+    .stick.isGuided {
+      animation: guidePulse 780ms ease-in-out infinite alternate;
+    }
+
+    @keyframes guidePulse {
+      from {
+        box-shadow: 0 0 0 rgba(255, 209, 102, 0), var(--shadow);
+        transform: translateY(0);
+      }
+      to {
+        box-shadow: 0 0 0 7px rgba(255, 209, 102, 0.22), 0 0 24px rgba(255, 209, 102, 0.62), var(--shadow);
+        transform: translateY(-2px);
+      }
+    }
+
+    .overlay {
+      position: fixed;
+      z-index: 10;
+      inset: 0;
+      display: grid;
+      align-items: center;
+      justify-items: center;
+      padding: 18px;
+      background:
+        linear-gradient(180deg, rgba(6, 23, 28, 0.62), rgba(4, 15, 18, 0.82)),
+        radial-gradient(circle at 35% 26%, rgba(123, 223, 242, 0.25), transparent 34%);
+      backdrop-filter: blur(8px);
+    }
+
+    .overlay.isHidden {
+      display: none;
+    }
+
+    .modal {
+      position: relative;
+      width: min(100%, 560px);
+      max-height: calc(100dvh - 36px);
+      overflow-y: auto;
+      padding: 22px;
+      border-radius: 8px;
+      background: rgba(5, 23, 28, 0.92);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .cornerBrand {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: clamp(82px, 21vw, 108px);
+      padding: 7px 9px 6px;
+      border-radius: 8px;
+      background: rgba(248, 252, 250, 0.96);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+    }
+
+    .unespLogo {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .endBrand {
+      position: static;
+      width: clamp(92px, 21vw, 116px);
+      justify-self: end;
+      margin: -6px 0 8px auto;
+    }
+
+    .modal h2 {
+      margin: 0;
+      padding-right: clamp(94px, 24vw, 118px);
+      font-size: clamp(34px, 11vw, 68px);
+      line-height: 0.92;
+      letter-spacing: 0;
+    }
+
+    #endOverlay .modal h2 {
+      padding-right: 0;
+    }
+
+    .modal .lead {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: clamp(15px, 4.2vw, 18px);
+      line-height: 1.35;
+    }
+
+    .projectCredits {
+      display: grid;
+      gap: 7px;
+      margin-top: 14px;
+      padding: 11px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .projectCredits strong {
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .projectCredits span {
+      color: var(--sun);
+      font-weight: 800;
+    }
+
+    .abstractBlock {
+      margin-top: 10px;
+      padding: 11px 12px;
+      border-radius: 8px;
+      background: rgba(141, 227, 127, 0.08);
+      border: 1px solid rgba(141, 227, 127, 0.16);
+      color: var(--muted);
+      font-size: 11.5px;
+      line-height: 1.32;
+    }
+
+    .abstractBlock strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .abstractBlock p {
+      margin: 0;
+    }
+
+    .referencesBlock {
+      margin-top: 10px;
+      padding: 11px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.055);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--muted);
+      font-size: 10.5px;
+      line-height: 1.28;
+    }
+
+    .referencesBlock strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .referencesBlock p {
+      margin: 5px 0 0;
+    }
+
+    .startButton {
+      width: 100%;
+      min-height: 52px;
+      margin-top: 18px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ffd166, #f4a261);
+      color: #1e2315;
+      font-weight: 800;
+      box-shadow: var(--shadow);
+    }
+
+    .endingStats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin: 18px 0;
+    }
+
+    .endingStats div {
+      padding: 12px 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      text-align: center;
+    }
+
+    .endingStats b {
+      display: block;
+      font-size: 22px;
+      color: var(--sun);
+    }
+
+    .endingStats span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.15;
+    }
+
+    .frogScene {
+      position: relative;
+      height: 174px;
+      margin: 18px 0 0;
+      overflow: hidden;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #2c91a7 0%, #2a7d83 43%, #6f5b39 44%, #345939 56%, #26442e 100%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .frogScene::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 84% 20%, rgba(255, 209, 102, 0.36), transparent 14%),
+        linear-gradient(135deg, transparent 0 62%, rgba(40, 90, 52, 0.72) 63% 100%);
+    }
+
+    .frogPlant {
+      position: absolute;
+      bottom: 38px;
+      width: 8px;
+      height: 76px;
+      border-radius: 999px;
+      background: #62b36f;
+      transform-origin: bottom center;
+    }
+
+    .frogPlant:nth-child(1) { left: 18px; transform: rotate(-9deg); }
+    .frogPlant:nth-child(2) { left: 42px; height: 96px; transform: rotate(8deg); background: #3f9f72; }
+    .frogPlant:nth-child(3) { right: 34px; height: 88px; transform: rotate(-6deg); }
+
+    .frogFinal {
+      position: absolute;
+      right: 42px;
+      bottom: 22px;
+      width: 156px;
+      height: 112px;
+      animation: frogBreathe 1.7s ease-in-out infinite alternate;
+    }
+
+    .frogBody,
+    .frogHead,
+    .frogEye,
+    .frogLeg,
+    .frogSpot {
+      position: absolute;
+      display: block;
+    }
+
+    .frogBody {
+      left: 42px;
+      bottom: 18px;
+      width: 76px;
+      height: 54px;
+      border-radius: 50%;
+      background: #f0cc62;
+      box-shadow: inset 0 10px 0 rgba(255, 255, 255, 0.18), 0 10px 20px rgba(0, 0, 0, 0.24);
+    }
+
+    .frogHead {
+      left: 35px;
+      bottom: 58px;
+      width: 86px;
+      height: 50px;
+      border-radius: 54% 54% 45% 45%;
+      background: #f5d878;
+      box-shadow: inset 0 8px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .frogEye {
+      top: 0;
+      width: 21px;
+      height: 21px;
+      border-radius: 50%;
+      background: #f8fff0;
+      border: 3px solid #f5d878;
+      box-shadow: inset 5px -5px 0 #10221f;
+    }
+
+    .frogEye.left { left: 42px; }
+    .frogEye.right { right: 36px; }
+
+    .frogLeg {
+      bottom: 2px;
+      width: 48px;
+      height: 20px;
+      border-radius: 999px;
+      background: #e3bd54;
+      box-shadow: inset 0 4px 0 rgba(255, 255, 255, 0.13);
+    }
+
+    .frogLeg.front.left { left: 31px; bottom: 12px; width: 38px; transform: rotate(25deg); }
+    .frogLeg.front.right { right: 28px; bottom: 12px; width: 38px; transform: rotate(-25deg); }
+    .frogLeg.back.left { left: 2px; bottom: 28px; width: 66px; height: 24px; transform: rotate(-24deg); }
+    .frogLeg.back.right { right: 0; bottom: 28px; width: 66px; height: 24px; transform: rotate(24deg); }
+
+    .frogMouth {
+      position: absolute;
+      left: 61px;
+      bottom: 70px;
+      width: 36px;
+      height: 16px;
+      border-bottom: 3px solid rgba(55, 39, 16, 0.55);
+      border-radius: 0 0 50% 50%;
+    }
+
+    .frogSpot {
+      width: 8px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(106, 78, 22, 0.24);
+    }
+
+    .frogSpot.one { left: 54px; bottom: 45px; }
+    .frogSpot.two { left: 91px; bottom: 39px; width: 11px; height: 8px; }
+    .frogSpot.three { left: 72px; bottom: 28px; width: 7px; height: 5px; }
+
+    @keyframes frogBreathe {
+      to {
+        transform: translateY(-3px);
+      }
+    }
+
+    .screenFlash {
+      position: fixed;
+      z-index: 7;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      background: rgba(239, 71, 111, 0.3);
+    }
+
+    .screenFlash.hit {
+      animation: hitFlash 280ms ease;
+    }
+
+    @keyframes hitFlash {
+      0% { opacity: 0; }
+      35% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    @media (min-width: 720px) {
+      .hud {
+        padding: 20px 24px 0;
+      }
+
+      .controls {
+        grid-template-columns: 1fr 148px;
+        padding: 0 24px 24px;
+      }
+
+      .stick {
+        width: 132px;
+        height: 132px;
+      }
+
+    }
+
+    @media (max-width: 380px) {
+      .controls {
+        grid-template-columns: 1fr 104px;
+        gap: 8px;
+      }
+
+      .stick {
+        width: 100px;
+        height: 100px;
+      }
+
+      .actionButton {
+        min-width: 62px;
+        padding: 7px 9px;
+      }
+
+      .barLine {
+        grid-template-columns: 68px 1fr 34px;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-    <header>
-        <div class="etiqueta">Museu de Zoologia &middot; Projeto Didático</div>
-        <h1>O que acontece quando os anfíbios desaparecem?</h1>
-        <p>Use os controles abaixo para simular perturbações ambientais e observe como a cadeia trófica responde em tempo real.</p>
+  <div id="app">
+    <canvas id="game" aria-label="Jogo Da Poça à Floresta"></canvas>
+
+    <header class="hud">
+      <div class="titleRow">
+        <div>
+          <h1>Da Poça à Floresta</h1>
+          <div class="subtitle">Um jogo sobre girinos e fluxo de energia nos ecossistemas</div>
+        </div>
+        <button id="pauseBtn" class="iconButton" type="button" aria-label="Pausar">
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"></rect>
+            <rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"></rect>
+          </svg>
+        </button>
+      </div>
+
+      <div class="bars" aria-live="polite">
+        <div class="barLine">
+          <span>Biomassa</span>
+          <div class="barTrack"><div id="biomassFill" class="barFill"></div></div>
+          <span id="biomassText" class="counter">0</span>
+        </div>
+      </div>
+
+      <div id="objectivePanel" class="objectivePanel isHidden" aria-live="polite">
+        <span>Objetivo</span>
+        <strong id="objectiveText"></strong>
+      </div>
     </header>
-    <div class="card intro-cadeia" style="padding: 20px;">
-        <div class="card-titulo">Antes de começar: o que é uma cadeia alimentar?</div>
-        <div class="card-subtitulo" style="margin-bottom: 14px;">Um guia rápido para entender a simulação</div>
-        <p>Na natureza, todos os seres vivos dependem uns dos outros para sobreviver. A <strong>cadeia alimentar</strong> (ou cadeia trófica) é a sequência que mostra quem come quem dentro de um ecossistema. A energia flui sempre na mesma direção: começa nos organismos que produzem seu próprio alimento e vai passando para os que se alimentam deles.</p>
-        <p>Essa cadeia é organizada em <strong>níveis tróficos</strong>. No primeiro nível estão os <strong>produtores</strong>, que transformam luz solar em energia (como plantas e algas). No segundo nível estão os <strong>herbívoros</strong>, que se alimentam dos produtores. Nos níveis seguintes estão os <strong>predadores</strong>, que se alimentam de outros animais.</p>
-        <p>O ponto fundamental é que <strong>todos os níveis estão conectados</strong>. Se uma população cresce ou diminui demais, as consequências se espalham por toda a cadeia — para cima e para baixo. Quando isso acontece por causa da remoção ou declínio de uma espécie, chamamos de <strong>cascata trófica</strong>.</p>
-        <div class="intro-exemplo">
-            <p><strong>Nesta simulação, a cadeia funciona assim:</strong></p>
-            <div class="intro-fluxo">
-                <span class="intro-fluxo-item" style="background: var(--cor-plantas);">Plantas e Algas</span>
-                <span class="intro-fluxo-seta">&rarr;</span>
-                <span class="intro-fluxo-item" style="background: var(--cor-insetos);">Insetos</span>
-                <span class="intro-fluxo-seta">&rarr;</span>
-                <span class="intro-fluxo-item" style="background: var(--cor-anfibios);">Anfíbios Adultos</span>
-                <span class="intro-fluxo-seta">&rarr;</span>
-                <span class="intro-fluxo-item" style="background: var(--cor-predadores);">Outros Predadores</span>
-            </div>
-            <p><strong>Plantas e Algas</strong> são a base — produzem energia a partir da luz solar. <strong>Insetos</strong> se alimentam das plantas. <strong>Anfíbios</strong> (como sapos e rãs) comem os insetos, controlando sua população. <strong>Predadores de topo</strong> (como serpentes e aves) se alimentam dos anfíbios.</p>
-            <p>Cada nível regula o seguinte. Se os anfíbios desaparecem, não há mais quem controle os insetos — e o ecossistema inteiro sofre as consequências. Experimente isso na simulação abaixo.</p>
-        </div>
-    </div>
-    <div class="card didatico">
-        <h3>Como funciona esta simulação?</h3>
-        <p>Esta simulação modela uma cadeia trófica simplificada com quatro níveis: <strong>Plantas e Algas</strong> (produtores), <strong>Insetos</strong> (herbívoros), <strong>Anfíbios</strong> (predadores intermediários, como sapos e rãs) e <strong>Predadores de Topo</strong> (como serpentes e aves).</p>
-        <p>As populações se regulam mutuamente: insetos comem plantas, anfíbios comem insetos, e predadores de topo comem anfíbios. Quando um nível é afetado, todo o ecossistema se desequilibra — um fenômeno chamado <strong>cascata trófica</strong>.</p>
-        <p>Os anfíbios ocupam uma posição central: sem eles, as populações de insetos explodem sem controle, devastando a vegetação. Isso já foi documentado na natureza — na América Central, o desaparecimento de anfíbios causou aumento de mosquitos e, consequentemente, de casos de malária em humanos.</p>
-    </div>
-    <!-- ══ PAINEL UNIFICADO DA SIMULAÇÃO ══ -->
-    <div class="card painel-sim">
-        <div class="card-titulo">Simulação Interativa</div>
-        <div class="card-subtitulo">Altere as condições ambientais e observe o impacto na cadeia trófica</div>
 
-        <!-- Populações -->
-        <div class="cadeia">
-            <div class="nivel-trofico"><div class="nivel-circulo plantas" id="circ-plantas"><span id="circ-val-p"></span></div><div class="nivel-nome">Plantas e<br>Algas</div><div class="nivel-pop" id="pop-plantas">—</div></div>
-            <div class="seta-cadeia">&rarr;</div>
-            <div class="nivel-trofico"><div class="nivel-circulo insetos" id="circ-insetos"><span id="circ-val-i"></span></div><div class="nivel-nome">Insetos</div><div class="nivel-pop" id="pop-insetos">—</div></div>
-            <div class="seta-cadeia">&rarr;</div>
-            <div class="nivel-trofico"><div class="nivel-circulo anfibios" id="circ-anfibios"><span id="circ-val-a"></span></div><div class="nivel-nome">Anfíbios</div><div class="nivel-pop" id="pop-anfibios">—</div></div>
-            <div class="seta-cadeia">&rarr;</div>
-            <div class="nivel-trofico"><div class="nivel-circulo predadores" id="circ-predadores"><span id="circ-val-s"></span></div><div class="nivel-nome">Predadores<br>de Topo</div><div class="nivel-pop" id="pop-predadores">—</div></div>
-        </div>
-
-        <!-- Gráfico -->
-        <div class="sim-divisor"></div>
-        <div class="controles-simulacao">
-            <button class="btn-pausar" id="btn-pausar"><span class="icone-pausar" id="icone-pausar"><span class="barra"></span><span class="barra"></span></span><span id="texto-pausar">Pausar</span></button>
-            <div class="velocidade-grupo">
-                <span class="velocidade-label">Velocidade:</span>
-                <button class="btn-vel" data-vel="1" id="vel-lenta">0.5x</button>
-                <button class="btn-vel ativo" data-vel="2" id="vel-normal">1x</button>
-                <button class="btn-vel" data-vel="5" id="vel-rapida">2.5x</button>
-            </div>
-        </div>
-        <div class="status-bar">
-            <div class="status-indicador"><div class="pulso" id="indicador-pulso"></div><span id="status-texto">Simulação em andamento</span></div>
-            <div class="tempo" id="tempo-display">Tempo: 0</div>
-        </div>
-        <div class="grafico-container" id="grafico-wrapper">
-            <div class="grafico-loading" id="grafico-loading">Carregando simulação...</div>
-            <canvas id="grafico" style="display:none;"></canvas>
-        </div>
-        <div class="legenda-custom">
-            <div class="legenda-item"><div class="legenda-cor" style="background:var(--cor-plantas)"></div>Plantas e Algas</div>
-            <div class="legenda-item"><div class="legenda-cor" style="background:var(--cor-insetos)"></div>Insetos</div>
-            <div class="legenda-item"><div class="legenda-cor" style="background:var(--cor-anfibios)"></div>Anfíbios</div>
-            <div class="legenda-item"><div class="legenda-cor" style="background:var(--cor-predadores)"></div>Predadores</div>
-        </div>
-
-        <!-- Controles -->
-        <div class="sim-divisor"></div>
-        <div class="controle-grupo">
-            <div class="controle-label"><span>Nível de Poluição</span><span class="valor" id="val-poluicao">0%</span></div>
-            <div class="controle-descricao">Anfíbios são os mais sensíveis à poluição por causa da pele permeável. Ao aumentar a poluição, eles são os primeiros a sofrer.</div>
-            <input type="range" class="slider-poluicao" id="slider-poluicao" min="0" max="100" value="0">
-        </div>
-        <div class="botoes-grupo">
-            <button class="btn btn-remover" id="btn-remover">Remover todos os anfíbios</button>
-            <button class="btn btn-reiniciar" id="btn-reiniciar">Reiniciar simulação</button>
-        </div>
-        <div class="feedback" id="feedback">Ecossistema em equilíbrio. Use os controles acima para simular perturbações ambientais e observe o que acontece com cada nível da cadeia trófica.</div>
-    </div>
-    <div class="card previsao-box">
-        <h3>O que esperar de cada perturbação?</h3>
-        <div class="previsao-cenario">
-            <div class="previsao-cenario-titulo"><div class="marcador" style="background: var(--cor-alerta)"></div>Aumentar a poluição</div>
-            <div class="previsao-etapa">1. Os anfíbios declinam primeiro — sua pele permeável absorve poluentes diretamente da água e do solo, tornando-os 5 vezes mais vulneráveis que os outros grupos.</div>
-            <div class="previsao-etapa">2. Com menos anfíbios predando, a população de insetos cresce sem controle.</div>
-            <div class="previsao-etapa">3. A explosão de insetos consome as plantas em excesso, reduzindo a vegetação.</div>
-            <div class="previsao-etapa">4. Os predadores de topo (serpentes, aves) também declinam, pois dependem dos anfíbios como alimento.</div>
-            <div class="previsao-etapa">5. O ecossistema inteiro se desestabiliza — por isso, cientistas usam anfíbios como bioindicadores: quando eles somem, é sinal de que o ambiente está contaminado.</div>
-        </div>
-        <div class="previsao-cenario">
-            <div class="previsao-cenario-titulo"><div class="marcador" style="background: var(--cor-anfibios)"></div>Remover todos os anfíbios</div>
-            <div class="previsao-etapa">1. Sem predadores naturais, a população de insetos dispara rapidamente.</div>
-            <div class="previsao-etapa">2. O excesso de herbivoria devasta as plantas e algas — a base do ecossistema entra em colapso.</div>
-            <div class="previsao-etapa">3. Os predadores de topo perdem sua principal fonte de alimento e entram em declínio.</div>
-            <div class="previsao-etapa">4. Com a base vegetal destruída, os próprios insetos começam a morrer de fome.</div>
-            <div class="previsao-etapa">5. Esse efeito em cadeia — onde a remoção de um grupo afeta todos os outros — é chamado de cascata trófica. Na América Central, o desaparecimento real de anfíbios levou ao aumento de mosquitos e de casos de malária.</div>
-        </div>
-    </div>
-    <div class="card didatico">
-        <h3>Por que os anfíbios são tão importantes?</h3>
-        <p><span class="dado-destaque">Bioindicadores:</span> Anfíbios possuem pele permeável e ciclo de vida dividido entre água e terra. Isso os torna extremamente sensíveis à poluição, às mudanças climáticas e à degradação ambiental. Quando anfíbios começam a desaparecer de um local, é sinal de que o ecossistema está em perigo.</p>
-        <p><span class="dado-destaque">Controle de pragas:</span> Sapos e rãs adultos consomem grandes quantidades de insetos diariamente, incluindo mosquitos transmissores de doenças. Seus girinos controlam o crescimento de algas em rios e lagoas.</p>
-        <p><span class="dado-destaque">Elo da cadeia alimentar:</span> São alimento essencial para serpentes, aves, peixes e mamíferos. Seu desaparecimento priva predadores de uma fonte proteica fundamental.</p>
-    </div>
-    <div class="card didatico">
-        <h3>A crise global dos anfíbios</h3>
-        <p>Atualmente, <span class="dado-destaque">40,7% das espécies de anfíbios</span> estão ameaçadas de extinção — a maior proporção entre todos os vertebrados. As principais causas são a destruição de habitats, a poluição, as mudanças climáticas e uma doença fúngica devastadora chamada quitridiomicose.</p>
-        <p>O Brasil é o <span class="dado-destaque">país com maior diversidade de anfíbios do mundo</span>, com cerca de 1.188 espécies conhecidas. Muitas delas existem apenas aqui e em nenhum outro lugar do planeta. Proteger os anfíbios brasileiros é proteger um patrimônio biológico único e insubstituível.</p>
-    </div>
-    <footer>
-        <p>Simulação baseada em modelo de Lotka-Volterra com crescimento logístico.</p>
-        <p class="fonte">Dados: Luedtke et al. (2023), Nature; Springborn et al. (2022), Environmental Research Letters; Segalla et al. (2021).</p>
+    <footer class="controls">
+      <div id="stick" class="stick" aria-label="Controle de movimento">
+        <div id="knob" class="knob"></div>
+      </div>
+      <div class="actionPanel">
+        <button id="raspBtn" class="actionButton" type="button" aria-label="Raspar alimento aderido">
+          <b>Raspar</b>
+          <small>biofilme</small>
+        </button>
+        <button id="flutterBtn" class="actionButton" type="button" aria-label="Agitar sedimento leve">
+          <b>Agitar</b>
+          <small>fundo</small>
+        </button>
+      </div>
     </footer>
-</div>
-<script>
-function iniciarSimulacao(){
-    var PARAMS={rP:1,KP:1e3,a1:.00333,muP:.05,e1:.15,d1:.1,a2:.003,muI:.08,e2:.15,d2:.03,a3:.0025,muA:.4,e3:.15,d3:.01875,muS:.12};
-    var INIT={P:500,I:150,A:50,S:15};
-    var estado={P:INIT.P,I:INIT.I,A:INIT.A,S:INIT.S,poluicao:0,habitat:1,tempo:0,anfibiosRemovidos:false,rodando:true};
-    var MAX_PONTOS=300;
-    var historico={tempos:[],plantas:[],insetos:[],anfibios:[],predadores:[]};
+  </div>
 
-    function derivadas(P,I,A,S,pol,hab){
-        var K=PARAMS.KP*Math.max(hab,.05);
-        return{dP:PARAMS.rP*P*(1-P/K)-PARAMS.a1*P*I-PARAMS.muP*pol*P,
-        dI:PARAMS.e1*PARAMS.a1*P*I-PARAMS.d1*I-PARAMS.a2*I*A-PARAMS.muI*pol*I,
-        dA:PARAMS.e2*PARAMS.a2*I*A-PARAMS.d2*A-PARAMS.a3*A*S-PARAMS.muA*pol*A,
-        dS:PARAMS.e3*PARAMS.a3*A*S-PARAMS.d3*S-PARAMS.muS*pol*S};
-    }
-    function passo(dt){
-        var P=estado.P,I=estado.I,A=estado.A,S=estado.S,pol=estado.poluicao,hab=estado.habitat;
-        var c=function(v){return Math.max(0,v)};
-        var k1=derivadas(P,I,A,S,pol,hab);
-        var k2=derivadas(c(P+k1.dP*dt/2),c(I+k1.dI*dt/2),c(A+k1.dA*dt/2),c(S+k1.dS*dt/2),pol,hab);
-        var k3=derivadas(c(P+k2.dP*dt/2),c(I+k2.dI*dt/2),c(A+k2.dA*dt/2),c(S+k2.dS*dt/2),pol,hab);
-        var k4=derivadas(c(P+k3.dP*dt),c(I+k3.dI*dt),c(A+k3.dA*dt),c(S+k3.dS*dt),pol,hab);
-        estado.P=c(Math.min(P+(k1.dP+2*k2.dP+2*k3.dP+k4.dP)*dt/6,1200));
-        estado.I=c(Math.min(I+(k1.dI+2*k2.dI+2*k3.dI+k4.dI)*dt/6,800));
-        estado.A=c(Math.min(A+(k1.dA+2*k2.dA+2*k3.dA+k4.dA)*dt/6,300));
-        estado.S=c(Math.min(S+(k1.dS+2*k2.dS+2*k3.dS+k4.dS)*dt/6,150));
-        if(estado.anfibiosRemovidos)estado.A=0;
-        if(estado.P<.5)estado.P=0;if(estado.I<.5)estado.I=0;
-        if(estado.A<.5&&!estado.anfibiosRemovidos)estado.A=0;if(estado.S<.5)estado.S=0;
-        estado.tempo+=dt;
-    }
+  <div id="lessonOverlay" class="lessonOverlay isHidden" role="dialog" aria-modal="true" aria-live="assertive">
+    <section class="lessonCard">
+      <div class="lessonKicker">Conceito ecológico</div>
+      <div id="lessonText" class="lessonText"></div>
+      <button id="lessonContinueBtn" class="lessonButton" type="button">Continuar nadando</button>
+    </section>
+  </div>
 
-    document.getElementById('grafico-loading').style.display='none';
-    var canvasEl=document.getElementById('grafico');canvasEl.style.display='block';
-    var ctx=canvasEl.getContext('2d');
-    var corSet=['#4a7c59','#c4883a','#2e7d96','#8b4049'];
-    var bgSet=['rgba(74,124,89,0.08)','rgba(196,136,58,0.06)','rgba(46,125,150,0.06)','rgba(139,64,73,0.06)'];
-    var nomes=['Plantas e Algas','Insetos','Anfíbios','Predadores'];
-    var grafico=new Chart(ctx,{type:'line',data:{labels:[],datasets:nomes.map(function(n,i){return{label:n,data:[],borderColor:corSet[i],backgroundColor:bgSet[i],borderWidth:2.5,pointRadius:0,fill:true,tension:.3}})},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(44,44,44,0.92)',padding:10,cornerRadius:6,callbacks:{label:function(c){return c.dataset.label+': '+Math.round(c.parsed.y)}}}},scales:{x:{display:true,ticks:{display:false},grid:{display:false}},y:{display:true,beginAtZero:true,suggestedMax:700,ticks:{maxTicksLimit:5,font:{size:10},color:'#999'},grid:{color:'rgba(0,0,0,0.04)',drawBorder:false}}}}});
+  <div id="glossaryOverlay" class="glossaryOverlay isHidden" role="dialog" aria-modal="true">
+    <section class="glossaryCard">
+      <h3 id="glossaryTitle"></h3>
+      <p id="glossaryBody"></p>
+      <button id="glossaryCloseBtn" class="lessonButton" type="button">Voltar ao conceito</button>
+    </section>
+  </div>
 
-    var E={popP:document.getElementById('pop-plantas'),popI:document.getElementById('pop-insetos'),popA:document.getElementById('pop-anfibios'),popS:document.getElementById('pop-predadores'),circP:document.getElementById('circ-plantas'),circI:document.getElementById('circ-insetos'),circA:document.getElementById('circ-anfibios'),circS:document.getElementById('circ-predadores'),valP:document.getElementById('circ-val-p'),valI:document.getElementById('circ-val-i'),valA:document.getElementById('circ-val-a'),valS:document.getElementById('circ-val-s'),tempo:document.getElementById('tempo-display'),fb:document.getElementById('feedback'),pulso:document.getElementById('indicador-pulso'),status:document.getElementById('status-texto')};
+  <div id="startOverlay" class="overlay">
+    <section class="modal">
+      <div class="cornerBrand" aria-label="UNESP">
+        <svg class="unespLogo" viewBox="0 0 260 112" role="img" aria-labelledby="unespStartTitle">
+          <title id="unespStartTitle">UNESP</title>
+          <text x="130" y="54" text-anchor="middle" fill="#050505" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="58" font-weight="900">UNESP</text>
+          <path d="M28 70 C70 78, 105 73, 130 68 C159 62, 196 63, 232 70" fill="none" stroke="#0098d7" stroke-width="6" stroke-linecap="round"></path>
+          <text x="130" y="101" text-anchor="middle" fill="#0098d7" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="900" letter-spacing="5">IBILCE</text>
+        </svg>
+      </div>
+      <h2>Da Poça à Floresta</h2>
+      <p class="lead">Nade como um girino, transforme alimento em corpo e leve energia da água para o ambiente terrestre.</p>
+      <div class="projectCredits" aria-label="Autoria do projeto">
+        <strong>Autores</strong>
+        <div><span>Filipe Vilar de Melo de Souza Oliveira; Luís Antônio Albino Bonadio; Larissa Santana Mendes Leal; Ana Carla de Souza Stivar; Pedro Henrique Santarelli de Oliveira; Victoria Williamson Passos</span></div>
+        <div>Orientador: <span>Prof. Dr. Tiago Leite Pezzuti</span></div>
+      </div>
+      <div class="abstractBlock" aria-label="Resumo do projeto">
+        <strong>Resumo</strong>
+        <p>Este estudo apresenta um protótipo interativo em HTML5 voltado à comunicação científica sobre a função ecológica de girinos em ecossistemas aquáticos. A experiência simula processos como raspagem de biofilme, consumo de partículas orgânicas, bioturbação, facilitação, competição, predação e metamorfose. Ao integrar mecânicas de sobrevivência e progressão por biomassa, o jogo representa a conversão de recursos alimentares em crescimento e a transferência de energia da água para o ambiente terrestre.</p>
+      </div>
+      <div class="referencesBlock" aria-label="Referências bibliográficas">
+        <strong>Referências bibliográficas</strong>
+        <p>Ranvestel, A. W., Lips, K. R., Pringle, C. M., Whiles, M. R. & Bixby, R. J. (2004). Neotropical tadpoles influence stream benthos: evidence for the ecological consequences of decline in amphibian populations. <em>Freshwater Biology</em>, 49(3), 274-285. DOI: 10.1111/j.1365-2427.2004.01184.x</p>
+        <p>Whiles, M. R., Lips, K. R., Pringle, C. M., Kilham, S. S., Bixby, R. J., Brenes, R., et al. (2006). The effects of amphibian population declines on the structure and function of Neotropical stream ecosystems. <em>Frontiers in Ecology and the Environment</em>, 4(1), 27-34. DOI: 10.1890/1540-9295(2006)004[0027:TEOAPD]2.0.CO;2</p>
+        <p>Gillespie, G. R. (2002). Impacts of sediment loads, tadpole density, and food type on the growth and development of tadpoles of the spotted tree frog <em>Litoria spenceri</em>: an in-stream experiment. <em>Biological Conservation</em>, 106(2), 141-150. DOI: 10.1016/S0006-3207(01)00127-6</p>
+      </div>
+      <button id="startBtn" class="startButton" type="button">Começar</button>
+    </section>
+  </div>
 
-    function atualizarCirculo(el,elVal,pop,popMax){var s=.6+.5*Math.min(pop/popMax,1);el.style.transform='scale('+s.toFixed(2)+')';el.style.opacity=pop<1?'0.25':'1';elVal.textContent=Math.round(pop)}
-    function atualizarUI(){
-        E.popP.textContent=Math.round(estado.P)+' ind.';E.popI.textContent=Math.round(estado.I)+' ind.';
-        E.popA.textContent=Math.round(estado.A)+' ind.';E.popS.textContent=Math.round(estado.S)+' ind.';
-        atualizarCirculo(E.circP,E.valP,estado.P,600);atualizarCirculo(E.circI,E.valI,estado.I,250);
-        atualizarCirculo(E.circA,E.valA,estado.A,80);atualizarCirculo(E.circS,E.valS,estado.S,25);
-        E.tempo.textContent='Tempo: '+Math.floor(estado.tempo);atualizarFeedback();
-    }
-    function atualizarFeedback(){
-        var P=estado.P,I=estado.I,A=estado.A,S=estado.S,pol=estado.poluicao,t='',al=false;
-        if(estado.anfibiosRemovidos&&A<1){al=true;
-            if(I>250)t='<strong>Cascata trófica em andamento.</strong> Sem anfíbios para controlar os insetos, a população de insetos disparou. Observe como isso pressiona as plantas — e como os predadores de topo também sofrem, pois perderam sua principal fonte de alimento.';
-            else if(P<80&&I>80)t='<strong>Ecossistema em colapso.</strong> A explosão de insetos devastou a vegetação. Com poucas plantas, os próprios insetos começam a declinar. Todo o sistema foi desestabilizado pela remoção de um único grupo: os anfíbios.';
-            else if(S<3)t='<strong>Os predadores de topo estão desaparecendo.</strong> Sem anfíbios como presa, serpentes e aves predadoras perdem sua fonte de energia. A cadeia trófica foi rompida de baixo para cima.';
-            else t='<strong>Anfíbios removidos.</strong> Observe como a ausência de um único grupo de organismos desestabiliza toda a cadeia trófica. Este é o princípio da cascata trófica.';
-        }else if(pol>.6){al=true;t=A<10?'<strong>Poluição crítica.</strong> Os anfíbios, por terem pele permeável que absorve poluentes diretamente, foram os primeiros a declinar. Na natureza, quando anfíbios desaparecem de um ambiente, é sinal de alerta: o ecossistema está contaminado.':'<strong>Poluição elevada.</strong> Os anfíbios estão sendo os mais afetados — sua sensibilidade faz deles verdadeiros bioindicadores. Cientistas monitoram populações de anfíbios para avaliar a saúde ambiental.';
-        }else if(pol>.25){t='<strong>Poluição moderada.</strong> Note que os anfíbios são o grupo que mais sofre proporcionalmente. Isso acontece porque substâncias tóxicas penetram facilmente pela sua pele fina e permeável, atingindo-os antes dos demais grupos.';
-        }else if(P<30&&I<30&&A<3&&S<2){t='<strong>Colapso total do ecossistema.</strong> Todas as populações entraram em declínio irreversível. Na natureza, ecossistemas podem levar décadas ou séculos para se recuperar — se é que se recuperam.';al=true;
-        }else{var eq=Math.abs(P-500)<200&&Math.abs(I-150)<80&&A>15&&S>3;t=eq?'Ecossistema em equilíbrio. As quatro populações se regulam mutuamente: anfíbios controlam insetos, que controlam plantas, enquanto predadores controlam anfíbios. Use os controles para perturbar esse equilíbrio.':'O ecossistema está se ajustando. As populações oscilam naturalmente até encontrar um novo equilíbrio. Na natureza, essas oscilações podem durar anos.';}
-        E.fb.innerHTML=t;E.fb.classList.toggle('alerta',al);
-    }
-    function atualizarGrafico(){
-        historico.tempos.push(Math.floor(estado.tempo));historico.plantas.push(estado.P);historico.insetos.push(estado.I);historico.anfibios.push(estado.A);historico.predadores.push(estado.S);
-        if(historico.tempos.length>MAX_PONTOS){historico.tempos.shift();historico.plantas.shift();historico.insetos.shift();historico.anfibios.shift();historico.predadores.shift();}
-        grafico.data.labels=historico.tempos;grafico.data.datasets[0].data=historico.plantas;grafico.data.datasets[1].data=historico.insetos;grafico.data.datasets[2].data=historico.anfibios;grafico.data.datasets[3].data=historico.predadores;grafico.update('none');
-    }
+  <div id="endOverlay" class="overlay isHidden">
+    <section class="modal">
+      <div class="cornerBrand endBrand" aria-label="UNESP">
+        <svg class="unespLogo" viewBox="0 0 260 112" role="img" aria-labelledby="unespEndTitle">
+          <title id="unespEndTitle">UNESP</title>
+          <text x="130" y="54" text-anchor="middle" fill="#050505" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="58" font-weight="900">UNESP</text>
+          <path d="M28 70 C70 78, 105 73, 130 68 C159 62, 196 63, 232 70" fill="none" stroke="#0098d7" stroke-width="6" stroke-linecap="round"></path>
+          <text x="130" y="101" text-anchor="middle" fill="#0098d7" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="900" letter-spacing="5">IBILCE</text>
+        </svg>
+      </div>
+      <h2>Metamorfose!</h2>
+      <p class="lead">Parte da biomassa produzida na poça agora segue para a margem e para a floresta.</p>
+      <div class="frogScene" aria-hidden="true">
+        <span class="frogPlant"></span>
+        <span class="frogPlant"></span>
+        <span class="frogPlant"></span>
+        <div class="frogFinal">
+          <span class="frogLeg back left"></span>
+          <span class="frogLeg back right"></span>
+          <span class="frogLeg front left"></span>
+          <span class="frogLeg front right"></span>
+          <span class="frogBody"></span>
+          <span class="frogHead"></span>
+          <span class="frogSpot one"></span>
+          <span class="frogSpot two"></span>
+          <span class="frogSpot three"></span>
+          <span class="frogEye left"></span>
+          <span class="frogEye right"></span>
+          <span class="frogMouth"></span>
+        </div>
+      </div>
+      <div class="endingStats">
+        <div><b id="endBiomass">0</b><span>biomassa transferida</span></div>
+        <div><b id="endLessons">0</b><span>interações ecológicas</span></div>
+      </div>
+      <div class="projectCredits" aria-label="Créditos do projeto">
+        <strong>Autores</strong>
+        <div><span>Filipe Vilar de Melo de Souza Oliveira; Luís Antônio Albino Bonadio; Larissa Santana Mendes Leal; Ana Carla de Souza Stivar; Pedro Henrique Santarelli de Oliveira; Victoria Williamson Passos</span></div>
+        <div>Orientador: <span>Prof. Dr. Tiago Leite Pezzuti</span></div>
+      </div>
+      <div class="abstractBlock" aria-label="Resumo do projeto">
+        <strong>Resumo</strong>
+        <p>Este estudo apresenta um protótipo interativo em HTML5 voltado à comunicação científica sobre a função ecológica de girinos em ecossistemas aquáticos. A experiência simula processos como raspagem de biofilme, consumo de partículas orgânicas, bioturbação, facilitação, competição, predação e metamorfose. Ao integrar mecânicas de sobrevivência e progressão por biomassa, o jogo representa a conversão de recursos alimentares em crescimento e a transferência de energia da água para o ambiente terrestre.</p>
+      </div>
+      <div class="referencesBlock" aria-label="Referências bibliográficas">
+        <strong>Referências bibliográficas</strong>
+        <p>Ranvestel, A. W., Lips, K. R., Pringle, C. M., Whiles, M. R. & Bixby, R. J. (2004). Neotropical tadpoles influence stream benthos: evidence for the ecological consequences of decline in amphibian populations. <em>Freshwater Biology</em>, 49(3), 274-285. DOI: 10.1111/j.1365-2427.2004.01184.x</p>
+        <p>Whiles, M. R., Lips, K. R., Pringle, C. M., Kilham, S. S., Bixby, R. J., Brenes, R., et al. (2006). The effects of amphibian population declines on the structure and function of Neotropical stream ecosystems. <em>Frontiers in Ecology and the Environment</em>, 4(1), 27-34. DOI: 10.1890/1540-9295(2006)004[0027:TEOAPD]2.0.CO;2</p>
+        <p>Gillespie, G. R. (2002). Impacts of sediment loads, tadpole density, and food type on the growth and development of tadpoles of the spotted tree frog <em>Litoria spenceri</em>: an in-stream experiment. <em>Biological Conservation</em>, 106(2), 141-150. DOI: 10.1016/S0006-3207(01)00127-6</p>
+      </div>
+      <button id="restartBtn" class="startButton" type="button">Jogar de novo</button>
+    </section>
+  </div>
 
-    var sliderPol=document.getElementById('slider-poluicao'),valPol=document.getElementById('val-poluicao'),btnRem=document.getElementById('btn-remover'),btnRes=document.getElementById('btn-reiniciar');
-    sliderPol.addEventListener('input',function(){estado.poluicao=this.value/100;valPol.textContent=this.value+'%'});
-    btnRem.addEventListener('click',function(){estado.anfibiosRemovidos=true;estado.A=0;this.style.opacity='0.5';this.textContent='Anfíbios removidos'});
+  <div id="deathOverlay" class="overlay isHidden">
+    <section class="modal">
+      <h2>Você foi predado</h2>
+      <p class="lead">A biomassa acumulada pelo girino foi transferida para um predador aquático.</p>
+      <button id="deathRestartBtn" class="startButton" type="button">Reiniciar</button>
+    </section>
+  </div>
 
-    var btnPau=document.getElementById('btn-pausar'),icoPau=document.getElementById('icone-pausar'),txtPau=document.getElementById('texto-pausar'),btVel=document.querySelectorAll('.btn-vel');
-    var pausado=false,passosPorFrame=4;
+  <div id="flash" class="screenFlash"></div>
 
-    btnPau.addEventListener('click',function(){
-        pausado=!pausado;
-        if(pausado){txtPau.textContent='Continuar';icoPau.innerHTML='<span class="triangulo"></span>';E.pulso.classList.add('parado');E.status.textContent='Simulação pausada';}
-        else{txtPau.textContent='Pausar';icoPau.innerHTML='<span class="barra"></span><span class="barra"></span>';if(estado.rodando){E.pulso.classList.remove('parado');E.status.textContent='Simulação em andamento';}}
-    });
-    btVel.forEach(function(b){b.addEventListener('click',function(){btVel.forEach(function(x){x.classList.remove('ativo')});this.classList.add('ativo');passosPorFrame=parseInt(this.getAttribute('data-vel'))})});
+  <script>
+    (() => {
+      "use strict";
 
-    btnRes.addEventListener('click',function(){
-        estado.P=INIT.P;estado.I=INIT.I;estado.A=INIT.A;estado.S=INIT.S;estado.poluicao=0;estado.habitat=1;estado.tempo=0;estado.anfibiosRemovidos=false;estado.rodando=true;
-        sliderPol.value=0;valPol.textContent='0%';btnRem.style.opacity='1';btnRem.textContent='Remover todos os anfíbios';
-        historico={tempos:[],plantas:[],insetos:[],anfibios:[],predadores:[]};
-        E.pulso.classList.remove('parado');E.status.textContent='Simulação em andamento';
-        pausado=false;txtPau.textContent='Pausar';icoPau.innerHTML='<span class="barra"></span><span class="barra"></span>';
-        btVel.forEach(function(b){b.classList.remove('ativo')});document.getElementById('vel-normal').classList.add('ativo');passosPorFrame=4;
-        atualizarUI();atualizarGrafico();
-    });
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
 
-    var DT=.05,frameCount=0;
-    function loop(){
-        if(!document.hidden&&estado.rodando&&!pausado){for(var i=0;i<passosPorFrame;i++)passo(DT);frameCount++;if(frameCount%3===0)atualizarGrafico();atualizarUI();
-            if(estado.P<1&&estado.I<1&&estado.A<1&&estado.S<1){estado.rodando=false;E.pulso.classList.add('parado');E.status.textContent='Ecossistema colapsou';}}
+      const ui = {
+        startOverlay: document.getElementById("startOverlay"),
+        endOverlay: document.getElementById("endOverlay"),
+        deathOverlay: document.getElementById("deathOverlay"),
+        lessonOverlay: document.getElementById("lessonOverlay"),
+        lessonText: document.getElementById("lessonText"),
+        lessonContinueBtn: document.getElementById("lessonContinueBtn"),
+        glossaryOverlay: document.getElementById("glossaryOverlay"),
+        glossaryTitle: document.getElementById("glossaryTitle"),
+        glossaryBody: document.getElementById("glossaryBody"),
+        glossaryCloseBtn: document.getElementById("glossaryCloseBtn"),
+        objectivePanel: document.getElementById("objectivePanel"),
+        objectiveText: document.getElementById("objectiveText"),
+        startBtn: document.getElementById("startBtn"),
+        restartBtn: document.getElementById("restartBtn"),
+        deathRestartBtn: document.getElementById("deathRestartBtn"),
+        pauseBtn: document.getElementById("pauseBtn"),
+        raspBtn: document.getElementById("raspBtn"),
+        flutterBtn: document.getElementById("flutterBtn"),
+        biomassFill: document.getElementById("biomassFill"),
+        biomassText: document.getElementById("biomassText"),
+        stick: document.getElementById("stick"),
+        knob: document.getElementById("knob"),
+        flash: document.getElementById("flash"),
+        endBiomass: document.getElementById("endBiomass"),
+        endLessons: document.getElementById("endLessons")
+      };
+
+      const W = 1600;
+      const H = 1000;
+      const rand = (min, max) => min + Math.random() * (max - min);
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const TAU = Math.PI * 2;
+
+      let cw = 1;
+      let ch = 1;
+      let scale = 1;
+      let camera = { x: 0, y: 0 };
+      let last = 0;
+      let running = false;
+      let paused = false;
+      let lessonOpen = false;
+      let lessonPauseBefore = false;
+      let lessonQueue = [];
+      let afterLessonAction = null;
+      let objectiveIndex = -1;
+      let currentObjective = null;
+      let objectiveTimer = null;
+      let ended = false;
+      let factsSeen = new Set();
+      let particles = [];
+      let foods = [];
+      let floatFood = [];
+      let sediments = [];
+      let denseClouds = [];
+      let competitors = [];
+      let predators = [];
+      let helpers = [];
+      let ripples = [];
+      let bubbles = [];
+      let plants = [];
+
+      const input = {
+        x: 0,
+        y: 0,
+        rasp: false,
+        flutter: false,
+        pointerId: null,
+        stickRect: null,
+        keys: new Set()
+      };
+
+      const player = {
+        x: W * 0.28,
+        y: H * 0.5,
+        vx: 0,
+        vy: 0,
+        angle: 0,
+        energy: 58,
+        biomass: 4,
+        clarity: 72,
+        radius: 21,
+        invuln: 0,
+        raspPulse: 0,
+        flutterPulse: 0,
+        stage: 0,
+        morphNoticeShown: false
+      };
+
+      const glossary = {
+        algas: "Organismos fotossintetizantes microscópicos ou simples que produzem matéria orgânica usando luz.",
+        biofilme: "Camada viva aderida a pedras, folhas ou galhos, formada por microrganismos e matéria orgânica.",
+        perifiton: "Comunidade de algas, bactérias e pequenos organismos aderida a superfícies submersas.",
+        materiaOrganica: "Material vindo de seres vivos, como folhas, restos vegetais, microrganismos e detritos.",
+        baseProdutiva: "Conjunto de produtores e recursos microscópicos que sustentam parte da cadeia alimentar.",
+        biomassa: "Matéria viva acumulada no corpo de um organismo.",
+        particulasOrganicas: "Pequenos pedaços de matéria orgânica suspensos ou acumulados na água.",
+        detritos: "Fragmentos de matéria orgânica em decomposição, como pedaços de folhas e restos de organismos.",
+        microorganismos: "Seres muito pequenos, como bactérias, fungos microscópicos e protozoários.",
+        decomposicao: "Processo em que a matéria orgânica é quebrada e reaproveitada no ecossistema.",
+        ecossistemaAquatico: "Ambiente de água doce ou salgada com seus organismos, recursos e interações.",
+        bioturbacao: "Movimentação do sedimento causada por animais ao nadar, cavar ou se alimentar.",
+        sedimento: "Partículas minerais ou orgânicas acumuladas no fundo ou suspensas na água.",
+        habitat: "Local com condições e recursos necessários para um organismo viver.",
+        metamorfose: "Transformação do girino em jovem anfíbio, com mudanças no corpo e no modo de vida.",
+        facilitacao: "Interação em que um organismo melhora o acesso a recursos para outro.",
+        competicao: "Disputa por um recurso limitado, como alimento, espaço ou abrigo.",
+        recurso: "Algo necessário para viver, crescer ou se reproduzir, como alimento ou abrigo.",
+        densidade: "Quantidade de indivíduos em uma área ou volume de ambiente.",
+        cadeiaAlimentar: "Sequência de transferência de energia quando um organismo serve de alimento para outro.",
+        presas: "Organismos consumidos por predadores.",
+        predadores: "Animais que capturam e consomem outros organismos.",
+        materiaVegetal: "Partes de plantas ou algas, como folhas, fragmentos e tecidos em decomposição.",
+        efemeropteros: "Insetos aquáticos na fase jovem, conhecidos como ninfas de efemerópteros; algumas espécies raspam biofilme sobre pedras e folhas."
+      };
+
+      const lessons = {
+        algae: `<strong>Girino como raspador</strong>
+          <p>Ao raspar <button class="termButton" data-term="biofilme">biofilme</button>, o girino consome <button class="termButton" data-term="algas">algas</button>, <button class="termButton" data-term="perifiton">perifíton</button> e <button class="termButton" data-term="materiaOrganica">matéria orgânica</button> aderida às superfícies.</p>
+          <p>Isso ajuda a regular a <button class="termButton" data-term="baseProdutiva">base produtiva</button> do riacho e transforma energia microscópica em <button class="termButton" data-term="biomassa">biomassa</button> animal.</p>`,
+        particles: `<strong>Detritos também são energia</strong>
+          <p><button class="termButton" data-term="particulasOrganicas">Partículas orgânicas</button> suspensas vêm de folhas, <button class="termButton" data-term="biofilme">biofilme</button>, <button class="termButton" data-term="microorganismos">microrganismos</button> e <button class="termButton" data-term="materiaVegetal">matéria vegetal</button> em <button class="termButton" data-term="decomposicao">decomposição</button>.</p>
+          <p>Ao consumir esse material, o girino processa matéria orgânica e mantém energia circulando no <button class="termButton" data-term="ecossistemaAquatico">ecossistema aquático</button>.</p>`,
+        sediment: `<strong>Bioturbação</strong>
+          <p>Ao nadar e se alimentar, girinos podem deslocar pequenas partículas no ambiente.</p>
+          <p>Esse movimento, chamado <button class="termButton" data-term="bioturbacao">bioturbação</button>, conecta material acumulado nas superfícies com partículas que voltam a circular na água.</p>`,
+        dense: `<strong>Sedimento em excesso prejudica</strong>
+          <p><button class="termButton" data-term="sedimento">Sedimento</button> fino em grande quantidade pode cobrir o alimento aderido e reduzir a qualidade do <button class="termButton" data-term="habitat">habitat</button>.</p>
+          <p>Com menos acesso ao alimento, girinos podem crescer menos, desenvolver-se mais devagar e chegar pior à <button class="termButton" data-term="metamorfose">metamorfose</button>.</p>`,
+        facilitation: `<strong>Facilitação ecológica</strong>
+          <p>Ao remover sedimento e expor <button class="termButton" data-term="biofilme">biofilme</button>, o girino pode facilitar a alimentação de outros pequenos raspadores aquáticos.</p>
+          <p>Algumas ninfas de <button class="termButton" data-term="efemeropteros">efemerópteros</button> são exemplos de insetos raspadores que podem aproveitar melhor superfícies expostas.</p>`,
+        competition: `<strong>Competição por alimento</strong>
+          <p>Quando muitos girinos disputam o mesmo <button class="termButton" data-term="recurso">recurso</button>, cada um obtém menos energia.</p>
+          <p>A <button class="termButton" data-term="densidade">densidade</button> de girinos pode influenciar crescimento, desenvolvimento e sucesso até a <button class="termButton" data-term="metamorfose">metamorfose</button>.</p>`,
+        predator: `<strong>Parte da cadeia alimentar</strong>
+          <p>Girinos não são apenas consumidores: eles também são <button class="termButton" data-term="presas">presas</button>.</p>
+          <p>A energia acumulada ao comer <button class="termButton" data-term="biofilme">biofilme</button> e <button class="termButton" data-term="detritos">detritos</button> pode ser transferida para <button class="termButton" data-term="predadores">predadores aquáticos</button>.</p>`,
+        biomass: `<strong>Energia vira corpo</strong>
+          <p>O alimento consumido pelo girino é convertido em crescimento e <button class="termButton" data-term="biomassa">biomassa</button>.</p>
+          <p>Essa biomassa pode sustentar predadores ou ser levada para a terra durante a <button class="termButton" data-term="metamorfose">metamorfose</button>.</p>`,
+        morphStart: `<strong>A metamorfose já está começando!</strong>
+          <p>Com biomassa suficiente, o corpo do girino começa a mudar: membros aparecem e a cauda passa a encurtar.</p>
+          <p>Essas mudanças preparam o animal para sair da água e ocupar o ambiente terrestre.</p>`,
+        metamorphosis: `<strong>Da poça à floresta</strong>
+          <p>Quando o girino metamorfoseia, parte da <button class="termButton" data-term="biomassa">biomassa</button> produzida na água chega à margem.</p>
+          <p>Assim, energia do <button class="termButton" data-term="ecossistemaAquatico">ecossistema aquático</button> pode alimentar relações ecológicas em terra.</p>`
+      };
+
+      const objectiveSteps = [
+        { id: "move", text: "Nade com o joystick touch ou com as setas do teclado.", lesson: null, guide: "stick" },
+        { id: "algae", text: "Aproxime-se das manchas verdes e segure Raspar para comer biofilme.", lesson: "algae", guide: "rasp" },
+        { id: "particles", text: "Colete partículas orgânicas suspensas brilhando na água.", lesson: "particles" },
+        { id: "sediment", text: "Use Agitar perto do fundo para deslocar sedimento leve.", lesson: "sediment", guide: "flutter" },
+        { id: "dense", text: "Afaste-se da mancha escura de sedimento denso.", lesson: "dense" },
+        { id: "facilitation", text: "Raspe uma mancha de biofilme para abrir espaço a outros raspadores.", lesson: "facilitation", guide: "rasp" },
+        { id: "competition", text: "Observe outro girino disputando a mesma comida.", lesson: "competition" },
+        { id: "avoidCompetition", text: "Afaste-se do outro girino para reduzir a competição pelo alimento.", lesson: null },
+        { id: "predator", text: "Afaste-se do predador até ele desistir da perseguição.", lesson: "predator" },
+        { id: "biomass", text: "Continue comendo para ganhar biomassa e tome cuidado para não ser predado.", lesson: "biomass" },
+        { id: "metamorphosis", text: "Continue se alimentando até a metamorfose acontecer sozinha.", lesson: "metamorphosis" }
+      ];
+
+      function resize() {
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        cw = Math.max(1, window.innerWidth);
+        ch = Math.max(1, window.innerHeight);
+        canvas.width = Math.floor(cw * dpr);
+        canvas.height = Math.floor(ch * dpr);
+        canvas.style.width = cw + "px";
+        canvas.style.height = ch + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        scale = Math.max(cw / 900, ch / 620);
+      }
+
+      function makePlants() {
+        plants = [];
+        for (let i = 0; i < 56; i++) {
+          const shoreBias = Math.random() < 0.35;
+          plants.push({
+            x: shoreBias ? rand(W * 0.74, W - 45) : rand(40, W - 60),
+            y: rand(H * 0.12, H * 0.9),
+            h: rand(44, 138),
+            w: rand(6, 14),
+            sway: rand(0, TAU),
+            color: Math.random() < 0.5 ? "#5ba86e" : "#2f8f79"
+          });
+        }
+      }
+
+      function makeFood() {
+        foods = [];
+        const types = [
+          { name: "algas", color: "#70d05f", value: 8 },
+          { name: "diatomáceas", color: "#d5cf5f", value: 9 },
+          { name: "perifíton", color: "#56c9a9", value: 10 },
+          { name: "biofilme", color: "#a7e57a", value: 7 }
+        ];
+        for (let i = 0; i < 44; i++) {
+          const type = types[i % types.length];
+          foods.push({
+            x: rand(80, W * 0.72),
+            y: rand(80, H - 90),
+            r: rand(17, 34),
+            amount: rand(26, 58),
+            max: 58,
+            type,
+            seed: rand(0, TAU)
+          });
+        }
+      }
+
+      function makeFloatFood() {
+        floatFood = [];
+        for (let i = 0; i < 70; i++) {
+          floatFood.push({
+            x: rand(60, W - 100),
+            y: rand(70, H - 80),
+            r: rand(4, 8),
+            value: rand(2.5, 4.8),
+            vx: rand(-8, 8),
+            vy: rand(-5, 5),
+            hue: rand(38, 80)
+          });
+        }
+      }
+
+      function makeSediment() {
+        sediments = [];
+        for (let i = 0; i < 80; i++) {
+          sediments.push({
+            x: rand(80, W * 0.78),
+            y: rand(H * 0.58, H - 60),
+            r: rand(5, 14),
+            moved: 0,
+            seed: rand(0, TAU)
+          });
+        }
+        denseClouds = [];
+        for (let i = 0; i < 8; i++) {
+          denseClouds.push({
+            x: rand(W * 0.38, W * 0.92),
+            y: rand(H * 0.2, H * 0.88),
+            r: rand(46, 78),
+            vx: rand(-8, 8),
+            vy: rand(-5, 5),
+            seed: rand(0, TAU)
+          });
+        }
+      }
+
+      function makeCreatures() {
+        competitors = [];
+        for (let i = 0; i < 5; i++) {
+          competitors.push({
+            x: rand(W * 0.18, W * 0.72),
+            y: rand(H * 0.18, H * 0.82),
+            vx: 0,
+            vy: 0,
+            angle: rand(0, TAU),
+            target: null,
+            phase: rand(0, TAU),
+            alive: true,
+            wander: rand(0, TAU),
+            stuckTime: 0,
+            lastX: 0,
+            lastY: 0
+          });
+        }
+
+        predators = [];
+        for (let i = 0; i < 3; i++) {
+          predators.push({
+            x: rand(W * 0.56, W * 0.95),
+            y: rand(H * 0.16, H * 0.78),
+            vx: rand(-8, 8),
+            vy: rand(-8, 8),
+            angle: 0,
+            chasing: false,
+            targetType: "player",
+            targetCompetitor: null,
+            playerFirst: true,
+            cooldown: rand(0.4, 2.2),
+            alert: 0,
+            phase: rand(0, TAU)
+          });
+        }
+
+        helpers = [];
+        for (let i = 0; i < 4; i++) {
+          helpers.push({
+            x: rand(W * 0.24, W * 0.68),
+            y: rand(H * 0.2, H * 0.82),
+            alive: true,
+            isHelper: true,
+            helped: 0,
+            phase: rand(0, TAU)
+          });
+        }
+      }
+
+      function pointNearPlayer(minDistance, maxDistance, angleHint) {
+        const angle = typeof angleHint === "number" ? angleHint : rand(0, TAU);
+        const distance = rand(minDistance, maxDistance);
+        return {
+          x: clamp(player.x + Math.cos(angle) * distance, 70, W - 90),
+          y: clamp(player.y + Math.sin(angle) * distance, 80, H - 90)
+        };
+      }
+
+      function clearOfTopHud(point, minScreenY = 205) {
+        const viewH = ch / scale;
+        const clearY = camera.y + Math.min(minScreenY, Math.max(120, viewH - 120));
+        return {
+          x: point.x,
+          y: clamp(Math.max(point.y, clearY), 80, H - 90)
+        };
+      }
+
+      function pointNearPlayerClearOfTopHud(minDistance, maxDistance, angleHint) {
+        const minScreenY = 205;
+        const viewH = ch / scale;
+        const limit = Math.min(minScreenY, Math.max(120, viewH - 120));
+        for (let i = 0; i < 28; i++) {
+          const angle = i === 0 && typeof angleHint === "number" ? angleHint : rand(0, TAU);
+          const point = pointNearPlayer(minDistance, maxDistance, angle);
+          if (point.y - camera.y >= limit) return point;
+        }
+        return clearOfTopHud(pointNearPlayer(minDistance, maxDistance, angleHint), minScreenY);
+      }
+
+      function pointOutsideView(margin = 130) {
+        const viewW = cw / scale;
+        const viewH = ch / scale;
+        const sides = [];
+        if (camera.x - margin > 70) sides.push("left");
+        if (camera.x + viewW + margin < W - 90) sides.push("right");
+        if (camera.y - margin > 80) sides.push("top");
+        if (camera.y + viewH + margin < H - 90) sides.push("bottom");
+        const side = sides.length ? sides[Math.floor(rand(0, sides.length))] : "far";
+        let x = rand(80, W - 100);
+        let y = rand(90, H - 100);
+        if (side === "left") {
+          x = rand(70, Math.max(72, camera.x - margin));
+          y = rand(90, H - 100);
+        } else if (side === "right") {
+          x = rand(Math.min(W - 92, camera.x + viewW + margin), W - 90);
+          y = rand(90, H - 100);
+        } else if (side === "top") {
+          x = rand(80, W - 100);
+          y = rand(80, Math.max(82, camera.y - margin));
+        } else if (side === "bottom") {
+          x = rand(80, W - 100);
+          y = rand(Math.min(H - 92, camera.y + viewH + margin), H - 90);
+        } else {
+          const angle = Math.atan2(player.y - H * 0.5, player.x - W * 0.5) + Math.PI + rand(-0.8, 0.8);
+          x = clamp(player.x + Math.cos(angle) * 460, 80, W - 100);
+          y = clamp(player.y + Math.sin(angle) * 360, 90, H - 100);
+        }
+        return { x, y };
+      }
+
+      function spreadOutsideView(count, margin = 130, minGap = 170) {
+        const points = [];
+        let attempts = 0;
+        while (points.length < count && attempts < 120) {
+          attempts++;
+          const p = pointOutsideView(margin);
+          if (points.every(q => dist(p, q) > minGap)) points.push(p);
+        }
+        while (points.length < count) points.push(pointOutsideView(margin));
+        return points;
+      }
+
+      function spawnFoodPatch(count, distance = 170, avoidTopHud = false) {
+        const types = [
+          { name: "algas", color: "#70d05f", value: 8 },
+          { name: "diatomáceas", color: "#d5cf5f", value: 9 },
+          { name: "perifíton", color: "#56c9a9", value: 10 },
+          { name: "biofilme", color: "#a7e57a", value: 7 }
+        ];
+        for (let i = 0; i < count; i++) {
+          const p = avoidTopHud
+            ? pointNearPlayerClearOfTopHud(distance * 0.55, distance, 0.18 + i * 0.7)
+            : pointNearPlayer(distance * 0.55, distance, -0.2 + i * 0.65);
+          const type = types[(foods.length + i) % types.length];
+          foods.push({
+            x: p.x,
+            y: p.y,
+            r: rand(20, 34),
+            amount: rand(36, 62),
+            max: 62,
+            type,
+            seed: rand(0, TAU)
+          });
+        }
+      }
+
+      function spawnFloatingParticles(count) {
+        for (let i = 0; i < count; i++) {
+          const p = pointNearPlayer(90, 260);
+          floatFood.push({
+            x: p.x,
+            y: p.y,
+            r: rand(5, 9),
+            value: rand(4.5, 7.5),
+            vx: rand(-12, 12),
+            vy: rand(-8, 8),
+            hue: rand(38, 80)
+          });
+        }
+      }
+
+      function spawnAmbientFloatingParticles(count) {
+        for (let i = 0; i < count; i++) {
+          floatFood.push({
+            x: rand(70, W - 100),
+            y: rand(70, H - 85),
+            r: rand(4.5, 8.5),
+            value: rand(3.8, 6.8),
+            vx: rand(-10, 10),
+            vy: rand(-7, 7),
+            hue: rand(38, 80)
+          });
+        }
+      }
+
+      function spawnSedimentPatch(count) {
+        for (let i = 0; i < count; i++) {
+          const p = pointNearPlayer(80, 230, Math.PI * 0.35 + i * 0.2);
+          sediments.push({
+            x: p.x,
+            y: clamp(Math.max(p.y, H * 0.58), 80, H - 60),
+            r: rand(6, 14),
+            moved: 0,
+            seed: rand(0, TAU)
+          });
+        }
+      }
+
+      function spawnDenseCloud() {
+        const p = pointNearPlayer(185, 230, 0);
+        denseClouds.push({
+          x: p.x,
+          y: p.y,
+          r: 68,
+          vx: rand(-4, 4),
+          vy: rand(-4, 4),
+          seed: rand(0, TAU)
+        });
+      }
+
+      function spawnHelperScene() {
+        spawnFoodPatch(2, 180, true);
+        const target = foods[foods.length - 1];
+        helpers.push({
+          x: clamp(target.x + 48, 40, W - 40),
+          y: clamp(target.y + 18, 40, H - 40),
+          vx: 0,
+          vy: 0,
+          angle: 0,
+          target: null,
+          waitForPlayerRasp: true,
+          alive: true,
+          isHelper: true,
+          helped: 0,
+          feeding: false,
+          wasFeeding: false,
+          feedEffectTime: 0,
+          phase: rand(0, TAU)
+        });
+      }
+
+      function spawnCompetitionScene() {
+        const type = { name: "biofilme", color: "#a7e57a", value: 7 };
+        const targetPoint = pointNearPlayerClearOfTopHud(95, 135, 0.35);
+        const target = {
+          x: targetPoint.x,
+          y: targetPoint.y,
+          r: rand(22, 32),
+          amount: rand(44, 64),
+          max: 64,
+          type,
+          seed: rand(0, TAU)
+        };
+        foods.push(target);
+        const competitorPoint = pointNearPlayerClearOfTopHud(78, 120, 0.65);
+        competitors.push({
+          x: competitorPoint.x,
+          y: competitorPoint.y,
+          vx: 0,
+          vy: 0,
+          angle: rand(0, TAU),
+          target,
+          phase: rand(0, TAU),
+          objectiveProgress: 0,
+          alive: true,
+          wander: rand(0, TAU),
+          stuckTime: 0,
+          lastX: competitorPoint.x,
+          lastY: competitorPoint.y
+        });
+      }
+
+      function spawnPostPredatorLife() {
+        const foodType = { name: "biofilme", color: "#a7e57a", value: 7 };
+        const points = spreadOutsideView(8, 170, 220);
+        for (const p of points.slice(0, 5)) {
+          const target = {
+            x: clamp(p.x + rand(-46, 46), 70, W - 90),
+            y: clamp(p.y + rand(-36, 36), 80, H - 90),
+            r: rand(20, 30),
+            amount: rand(34, 52),
+            max: 58,
+            type: foodType,
+            seed: rand(0, TAU)
+          };
+          foods.push(target);
+          competitors.push({
+            x: p.x,
+            y: p.y,
+            vx: rand(-10, 10),
+            vy: rand(-10, 10),
+            angle: rand(0, TAU),
+            target,
+            phase: rand(0, TAU),
+            objectiveProgress: 0,
+            alive: true,
+            wander: rand(0, TAU),
+            stuckTime: 0,
+            lastX: p.x,
+            lastY: p.y
+          });
+        }
+
+        for (const p of points.slice(5, 7)) {
+          const target = {
+            x: clamp(p.x + rand(-34, 34), 70, W - 90),
+            y: clamp(p.y + rand(-30, 30), 80, H - 90),
+            r: rand(18, 28),
+            amount: rand(24, 34),
+            max: 50,
+            type: foodType,
+            seed: rand(0, TAU)
+          };
+          foods.push(target);
+          helpers.push({
+            x: p.x,
+            y: p.y,
+            vx: rand(-8, 8),
+            vy: rand(-8, 8),
+            angle: rand(0, TAU),
+            target,
+            waitForPlayerRasp: false,
+            alive: true,
+            isHelper: true,
+            helped: 0,
+            feeding: false,
+            wasFeeding: false,
+            feedEffectTime: 0,
+            phase: rand(0, TAU)
+          });
+        }
+
+        const predatorPoint = points[7];
+        const a = Math.atan2(player.y - predatorPoint.y, player.x - predatorPoint.x);
+        predators.push({
+          x: predatorPoint.x,
+          y: predatorPoint.y,
+          vx: Math.cos(a) * 24,
+          vy: Math.sin(a) * 24,
+          angle: a,
+          chasing: false,
+          targetType: "player",
+          targetCompetitor: null,
+          playerFirst: false,
+          cooldown: 1.2,
+          alert: 0,
+          phase: rand(0, TAU)
+        });
+      }
+
+      function spawnPredatorScene() {
+        const viewW = cw / scale;
+        const viewH = ch / scale;
+        const margin = 110;
+        const side = Math.floor(rand(0, 4));
+        let x = player.x + 260;
+        let y = player.y;
+        if (side === 0) {
+          x = camera.x - margin;
+          y = rand(camera.y + 80, camera.y + viewH - 80);
+        } else if (side === 1) {
+          x = camera.x + viewW + margin;
+          y = rand(camera.y + 80, camera.y + viewH - 80);
+        } else if (side === 2) {
+          x = rand(camera.x + 80, camera.x + viewW - 80);
+          y = camera.y - margin;
+        } else {
+          x = rand(camera.x + 80, camera.x + viewW - 80);
+          y = camera.y + viewH + margin;
+        }
+        x = clamp(x, 35, W - 35);
+        y = clamp(y, 35, H - 35);
+        const a = Math.atan2(player.y - y, player.x - x);
+        const predator = {
+          x,
+          y,
+          vx: Math.cos(a) * 38,
+          vy: Math.sin(a) * 38,
+          angle: a,
+          chasing: true,
+          targetType: "player",
+          targetCompetitor: null,
+          playerFirst: true,
+          lessonPredator: true,
+          seenByPlayer: false,
+          chaseElapsed: 0,
+          requiredChaseTime: 4,
+          escapeHold: 0,
+          cooldown: 0,
+          alert: 1,
+          phase: rand(0, TAU)
+        };
+        predators.push(predator);
+        if (currentObjective && currentObjective.id === "predator") {
+          currentObjective.chased = true;
+          currentObjective.predator = predator;
+        }
+      }
+
+      function makeBubbles() {
+        bubbles = [];
+        for (let i = 0; i < 76; i++) {
+          bubbles.push({
+            x: rand(0, W),
+            y: rand(0, H),
+            r: rand(1, 4),
+            s: rand(8, 28),
+            a: rand(0.1, 0.42)
+          });
+        }
+      }
+
+      function reset() {
+        player.x = W * 0.28;
+        player.y = H * 0.5;
+        player.vx = 0;
+        player.vy = 0;
+        player.angle = 0;
+        player.energy = 58;
+        player.biomass = 4;
+        player.clarity = 72;
+        player.radius = 21;
+        player.invuln = 0;
+        player.raspPulse = 0;
+        player.flutterPulse = 0;
+        player.stage = 0;
+        player.morphNoticeShown = false;
+        ended = false;
+        paused = false;
+        lessonOpen = false;
+        lessonPauseBefore = false;
+        lessonQueue = [];
+        afterLessonAction = null;
+        objectiveIndex = -1;
+        currentObjective = null;
+        if (objectiveTimer) {
+          clearTimeout(objectiveTimer);
+          objectiveTimer = null;
+        }
+        ui.lessonOverlay.classList.add("isHidden");
+        ui.glossaryOverlay.classList.add("isHidden");
+        ui.deathOverlay.classList.add("isHidden");
+        ui.objectivePanel.classList.add("isHidden");
+        ui.raspBtn.classList.remove("isGuided");
+        ui.flutterBtn.classList.remove("isGuided");
+        ui.stick.classList.remove("isGuided");
+        factsSeen = new Set();
+        ripples = [];
+        particles = [];
+        foods = [];
+        floatFood = [];
+        sediments = [];
+        denseClouds = [];
+        competitors = [];
+        predators = [];
+        helpers = [];
+        makePlants();
+        makeBubbles();
+        updateHud();
+      }
+
+      function updatePauseButton() {
+        ui.pauseBtn.setAttribute("aria-label", paused ? "Continuar" : "Pausar");
+        ui.pauseBtn.innerHTML = paused
+          ? '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"></path></svg>'
+          : '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"></rect><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"></rect></svg>';
+      }
+
+      function focusLessonButton() {
+        try {
+          ui.lessonContinueBtn.focus({ preventScroll: true });
+        } catch (error) {
+          ui.lessonContinueBtn.focus();
+        }
+      }
+
+      function openGlossary(termKey) {
+        const text = glossary[termKey];
+        if (!text) return;
+        const trigger = ui.lessonText.querySelector(`[data-term="${termKey}"]`);
+        ui.glossaryTitle.textContent = trigger ? trigger.textContent : "Termo ecológico";
+        ui.glossaryBody.textContent = text;
+        ui.glossaryOverlay.classList.remove("isHidden");
+        try {
+          ui.glossaryCloseBtn.focus({ preventScroll: true });
+        } catch (error) {
+          ui.glossaryCloseBtn.focus();
+        }
+      }
+
+      function closeGlossary() {
+        ui.glossaryOverlay.classList.add("isHidden");
+        focusLessonButton();
+      }
+
+      function morphBodyColor(morph) {
+        return `rgb(${Math.round(240 + morph * 5)}, ${Math.round(204 + morph * 12)}, ${Math.round(98 + morph * 22)})`;
+      }
+
+      function morphLimbColor(morph) {
+        return `rgb(${Math.round(226 + morph * 12)}, ${Math.round(189 + morph * 16)}, ${Math.round(84 + morph * 18)})`;
+      }
+
+      function showLesson(key, afterClose) {
+        if (!lessons[key]) return;
+        if (lessonOpen) {
+          if (!lessonQueue.includes(key)) lessonQueue.push(key);
+          return;
+        }
+        lessonOpen = true;
+        lessonPauseBefore = paused;
+        afterLessonAction = typeof afterClose === "function" ? afterClose : null;
+        factsSeen.add(key);
+        paused = true;
+        updatePauseButton();
+        ui.lessonContinueBtn.textContent = key === "metamorphosis" ? "Ir para a floresta" : "Continuar nadando";
+        ui.lessonText.innerHTML = lessons[key];
+        ui.lessonOverlay.classList.remove("isHidden");
+        setTimeout(focusLessonButton, 0);
+      }
+
+      function closeLesson() {
+        if (!lessonOpen) return;
+        if (lessonQueue.length) {
+          const nextKey = lessonQueue.shift();
+          factsSeen.add(nextKey);
+          ui.lessonContinueBtn.textContent = nextKey === "metamorphosis" ? "Ir para a floresta" : "Continuar nadando";
+          ui.lessonText.innerHTML = lessons[nextKey];
+          setTimeout(focusLessonButton, 0);
+          return;
+        }
+        lessonOpen = false;
+        ui.lessonOverlay.classList.add("isHidden");
+        ui.glossaryOverlay.classList.add("isHidden");
+        paused = lessonPauseBefore;
+        updatePauseButton();
+        const action = afterLessonAction;
+        afterLessonAction = null;
+        if (action) action();
+        ui.lessonContinueBtn.textContent = "Continuar nadando";
+      }
+
+      function setGuidance(step) {
+        ui.stick.classList.toggle("isGuided", step && step.guide === "stick");
+        ui.raspBtn.classList.toggle("isGuided", step && step.guide === "rasp");
+        ui.flutterBtn.classList.toggle("isGuided", step && step.guide === "flutter");
+      }
+
+      function setObjectiveText(text) {
+        if (!text) {
+          ui.objectivePanel.classList.add("isHidden");
+          ui.objectiveText.textContent = "";
+          return;
+        }
+        ui.objectiveText.textContent = text;
+        ui.objectivePanel.classList.remove("isHidden");
+      }
+
+      function startObjective(index) {
+        objectiveIndex = index;
+        const step = objectiveSteps[objectiveIndex];
+        if (!step) return;
+        currentObjective = {
+          id: step.id,
+          lesson: step.lesson,
+          completed: false,
+          startedAt: performance.now(),
+          distance: 0,
+          rasped: 0,
+          particles: 0,
+          sediment: 0,
+          denseSeen: false,
+          safeTime: 0,
+          awayTime: 0,
+          helped: 0,
+          competed: 0,
+          chased: false,
+          guideUntil: step.id === "biomass" || step.id === "metamorphosis" ? performance.now() + 1800 : Infinity,
+          lastX: player.x,
+          lastY: player.y
+        };
+        setGuidance(step);
+        setObjectiveText(step.text);
+
+        if (step.id === "algae") spawnFoodPatch(3, 210);
+        if (step.id === "particles") spawnFloatingParticles(10);
+        if (step.id === "sediment") spawnSedimentPatch(16);
+        if (step.id === "dense") spawnDenseCloud();
+        if (step.id === "facilitation") spawnHelperScene();
+        if (step.id === "competition") spawnCompetitionScene();
+        if (step.id === "predator") {
+          predators = [];
+          spawnPredatorScene();
+          showLesson("predator");
+        }
+        if (step.id === "biomass") {
+          spawnFoodPatch(7, 230);
+          spawnFoodPatch(4, 340);
+          spawnFloatingParticles(24);
+          spawnAmbientFloatingParticles(70);
+          spawnPostPredatorLife();
+        }
+        if (step.id === "metamorphosis") {
+          spawnFoodPatch(5, 280);
+          spawnFloatingParticles(18);
+        }
+      }
+
+      function nextObjective() {
+        startObjective(objectiveIndex + 1);
+      }
+
+      function completeObjective(lessonKey, afterLesson) {
+        if (!currentObjective || currentObjective.completed) return;
+        currentObjective.completed = true;
+        setGuidance(null);
+        setObjectiveText("");
+        if (objectiveTimer) clearTimeout(objectiveTimer);
+        objectiveTimer = setTimeout(() => {
+          objectiveTimer = null;
+          if (lessonKey) {
+            showLesson(lessonKey, afterLesson || nextObjective);
+          } else {
+            setObjectiveText("");
+            nextObjective();
+          }
+        }, lessonKey ? 1000 : 350);
+      }
+
+      function checkObjectiveProgress(dt) {
+        if (!currentObjective || currentObjective.completed) return;
+        const id = currentObjective.id;
+        const moved = Math.hypot(player.x - currentObjective.lastX, player.y - currentObjective.lastY);
+        currentObjective.lastX = player.x;
+        currentObjective.lastY = player.y;
+        if (id === "facilitation" && currentObjective.helperFed) completeObjective("facilitation");
+        if (id === "avoidCompetition") {
+          const nearest = competitors.reduce((best, c) => {
+            if (!c.alive) return best;
+            return Math.min(best, Math.hypot(player.x - c.x, player.y - c.y));
+          }, Infinity);
+          currentObjective.awayTime = nearest > 285 ? currentObjective.awayTime + dt : 0;
+          if (currentObjective.awayTime > 0.9) completeObjective(null);
+        }
+        if (id === "move") {
+          currentObjective.distance += moved;
+          if (currentObjective.distance > 110) completeObjective(null);
+        }
+        if (id === "biomass" && player.biomass >= 54) completeObjective("biomass");
+        if (id === "metamorphosis" && player.biomass >= 100) completeObjective("metamorphosis", metamorphose);
+        if (id === "dense" && currentObjective.denseSeen) {
+          const nearest = denseClouds.reduce((best, cloud) => Math.min(best, Math.hypot(player.x - cloud.x, player.y - cloud.y)), Infinity);
+          currentObjective.safeTime = nearest > 330 ? currentObjective.safeTime + dt : 0;
+          if (currentObjective.safeTime > 1.1) completeObjective("dense");
+        }
+      }
+
+      function addRipple(x, y, r, color) {
+        ripples.push({ x, y, r, t: 0, color });
+        if (ripples.length > 60) ripples.shift();
+      }
+
+      function addParticles(x, y, color, n, spread, power) {
+        for (let i = 0; i < n; i++) {
+          const a = rand(0, TAU);
+          const s = rand(0.2, 1) * power;
+          particles.push({
+            x: x + Math.cos(a) * rand(0, spread),
+            y: y + Math.sin(a) * rand(0, spread),
+            vx: Math.cos(a) * s,
+            vy: Math.sin(a) * s,
+            life: rand(0.4, 0.9),
+            max: 0.9,
+            r: rand(1.4, 3.4),
+            color
+          });
+        }
+        if (particles.length > 220) particles.splice(0, particles.length - 220);
+      }
+
+      function gainEnergy(amount) {
+        player.energy = clamp(player.energy + amount, 0, 100);
+        player.biomass = clamp(player.biomass + amount * 0.225, 0, 100);
+        player.radius = 21 + player.biomass * 0.12;
+        if (player.biomass >= 75 && !player.morphNoticeShown && !ended) {
+          player.morphNoticeShown = true;
+          showLesson("morphStart");
+        }
+      }
+
+      function damage(amount, key) {
+        if (player.invuln > 0 && key === "predator") return;
+        player.energy = clamp(player.energy - amount, 0, 100);
+        if (key === "predator") {
+          player.biomass = clamp(player.biomass - amount, 0, 100);
+          player.radius = 21 + player.biomass * 0.12;
+          player.invuln = 1.2;
+          if (player.biomass <= 0) {
+            player.biomass = 0;
+            updateHud();
+            dieByPredator();
+            return;
+          }
+        }
+        ui.flash.classList.remove("hit");
+        void ui.flash.offsetWidth;
+        ui.flash.classList.add("hit");
+      }
+
+      function dieByPredator() {
+        ended = true;
+        if (objectiveTimer) {
+          clearTimeout(objectiveTimer);
+          objectiveTimer = null;
+        }
+        lessonOpen = false;
+        paused = false;
+        updatePauseButton();
+        input.rasp = false;
+        input.flutter = false;
+        setGuidance(null);
+        setObjectiveText("");
+        ui.lessonOverlay.classList.add("isHidden");
+        ui.glossaryOverlay.classList.add("isHidden");
+        ui.deathOverlay.classList.remove("isHidden");
+      }
+
+      function updateHud() {
+        const b = Math.round(player.biomass);
+        ui.biomassFill.style.width = b + "%";
+        ui.biomassText.textContent = b;
+      }
+
+      function updateInputFromKeys() {
+        let x = 0;
+        let y = 0;
+        if (input.keys.has("arrowleft") || input.keys.has("a")) x -= 1;
+        if (input.keys.has("arrowright") || input.keys.has("d")) x += 1;
+        if (input.keys.has("arrowup") || input.keys.has("w")) y -= 1;
+        if (input.keys.has("arrowdown") || input.keys.has("s")) y += 1;
+        if (x || y) {
+          const len = Math.hypot(x, y);
+          input.x = x / len;
+          input.y = y / len;
+        } else if (input.pointerId === null) {
+          input.x = 0;
+          input.y = 0;
+        }
+      }
+
+      function setStickFromEvent(e) {
+        const rect = input.stickRect || ui.stick.getBoundingClientRect();
+        input.stickRect = rect;
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const max = rect.width * 0.35;
+        const dx = e.clientX - cx;
+        const dy = e.clientY - cy;
+        const len = Math.hypot(dx, dy);
+        const n = len > 0 ? Math.min(1, len / max) : 0;
+        const nx = len > 0 ? dx / len : 0;
+        const ny = len > 0 ? dy / len : 0;
+        input.x = nx * n;
+        input.y = ny * n;
+        ui.knob.style.transform = `translate(${nx * n * max}px, ${ny * n * max}px)`;
+      }
+
+      function clearStick() {
+        input.pointerId = null;
+        input.stickRect = null;
+        input.x = 0;
+        input.y = 0;
+        ui.knob.style.transform = "translate(0, 0)";
+      }
+
+      function nearestFood(creature) {
+        let best = null;
+        let bd = Infinity;
+        for (const f of foods) {
+          if (f.amount <= 2) continue;
+          const d = Math.hypot(f.x - creature.x, f.y - creature.y);
+          if (d < bd) {
+            bd = d;
+            best = f;
+          }
+        }
+        return best;
+      }
+
+      function nearestLivingCompetitor(from, radius) {
+        let best = null;
+        let bd = radius;
+        for (const c of competitors) {
+          if (!c.alive) continue;
+          const d = Math.hypot(c.x - from.x, c.y - from.y);
+          if (d < bd) {
+            bd = d;
+            best = c;
+          }
+        }
+        return best;
+      }
+
+      function nearestLivingPrey(from, radius) {
+        let best = null;
+        let bd = radius;
+        for (const c of competitors) {
+          if (!c.alive) continue;
+          const d = Math.hypot(c.x - from.x, c.y - from.y);
+          if (d < bd) {
+            bd = d;
+            best = c;
+          }
+        }
+        for (const h of helpers) {
+          if (h.alive === false) continue;
+          const d = Math.hypot(h.x - from.x, h.y - from.y);
+          if (d < bd) {
+            bd = d;
+            best = h;
+          }
+        }
+        return best;
+      }
+
+      function updateWorld(dt) {
+        updateInputFromKeys();
+        player.invuln = Math.max(0, player.invuln - dt);
+        player.raspPulse = Math.max(0, player.raspPulse - dt * 3);
+        player.flutterPulse = Math.max(0, player.flutterPulse - dt * 2.2);
+        player.energy = clamp(player.energy - dt * (0.9 + Math.hypot(player.vx, player.vy) / 380), 0, 100);
+        if (player.energy <= 0.2) {
+          player.energy = 18;
+          player.biomass = Math.max(0, player.biomass - 8);
+          damage(0, "dense");
+        }
+
+        const accel = player.energy > 8 ? 520 : 280;
+        player.vx += input.x * accel * dt;
+        player.vy += input.y * accel * dt;
+        player.vx *= Math.pow(0.055, dt);
+        player.vy *= Math.pow(0.055, dt);
+        const speed = Math.hypot(player.vx, player.vy);
+        const maxSpeed = player.energy > 18 ? 235 : 160;
+        if (speed > maxSpeed) {
+          player.vx = (player.vx / speed) * maxSpeed;
+          player.vy = (player.vy / speed) * maxSpeed;
+        }
+        player.x = clamp(player.x + player.vx * dt, 32, W - 34);
+        player.y = clamp(player.y + player.vy * dt, 38, H - 42);
+        if (speed > 8) player.angle = Math.atan2(player.vy, player.vx);
+
+        if (input.rasp) {
+          player.raspPulse = 1;
+          let rasped = false;
+          for (const f of foods) {
+            const d = Math.hypot(f.x - player.x, f.y - player.y);
+            if (f.amount > 0 && d < f.r + player.radius + 18) {
+              const bite = Math.min(f.amount, dt * 24);
+              f.amount -= bite;
+              gainEnergy(bite * 0.28);
+              rasped = true;
+              if (currentObjective && !currentObjective.completed) {
+                if (currentObjective.id === "algae") {
+                  currentObjective.rasped += bite;
+                  if (currentObjective.rasped > 12) completeObjective("algae");
+                }
+                if (currentObjective.id === "facilitation") {
+                  currentObjective.rasped += bite;
+                  currentObjective.raspedFood = f;
+                  for (const h of helpers) {
+                    if (h.alive === false) continue;
+                    h.target = f;
+                    h.waitForPlayerRasp = false;
+                  }
+                }
+              }
+              addParticles(f.x, f.y, f.type.color, 2, f.r, 30);
+              if (Math.random() < dt * 4) addRipple(f.x, f.y, f.r + 6, f.type.color);
+            }
+          }
+        }
+
+        if (input.flutter) {
+          player.flutterPulse = 1;
+          addRipple(player.x, player.y, 36 + Math.random() * 18, "#d5a35f");
+          for (const s of sediments) {
+            const d = Math.hypot(s.x - player.x, s.y - player.y);
+            if (d < 76 && s.moved < 1) {
+              const push = (1 - d / 76) * dt * 1.8;
+              s.moved = clamp(s.moved + push, 0, 1);
+              s.x += ((s.x - player.x) / Math.max(1, d)) * push * 28;
+              s.y += ((s.y - player.y) / Math.max(1, d)) * push * 16;
+              player.clarity = clamp(player.clarity + push * 3.6, 0, 100);
+              addParticles(s.x, s.y, "#c79256", 1, 8, 22);
+              if (currentObjective && currentObjective.id === "sediment" && !currentObjective.completed) {
+                currentObjective.sediment += push;
+                if (currentObjective.sediment > 1.15) completeObjective("sediment");
+              }
+            }
+          }
+        }
+
+        for (const p of floatFood) {
+          p.x += (p.vx + Math.sin(last * 0.001 + p.y * 0.01) * 8) * dt;
+          p.y += (p.vy + Math.cos(last * 0.001 + p.x * 0.01) * 5) * dt;
+          if (p.x < 15 || p.x > W - 15) p.vx *= -1;
+          if (p.y < 20 || p.y > H - 20) p.vy *= -1;
+          const d = Math.hypot(p.x - player.x, p.y - player.y);
+          if (d < player.radius + p.r + 6) {
+            gainEnergy(p.value);
+            addParticles(p.x, p.y, `hsl(${p.hue} 80% 68%)`, 6, 10, 44);
+            p.x = rand(80, W - 110);
+            p.y = rand(70, H - 90);
+            if (currentObjective && currentObjective.id === "particles" && !currentObjective.completed) {
+              currentObjective.particles += 1;
+              if (currentObjective.particles >= 5) completeObjective("particles");
+            }
+          }
+        }
+
+        for (const cloud of denseClouds) {
+          cloud.x += (cloud.vx + Math.sin(last * 0.0007 + cloud.seed) * 8) * dt;
+          cloud.y += (cloud.vy + Math.cos(last * 0.0006 + cloud.seed) * 7) * dt;
+          if (cloud.x < 80 || cloud.x > W - 80) cloud.vx *= -1;
+          if (cloud.y < 80 || cloud.y > H - 80) cloud.vy *= -1;
+          const d = Math.hypot(cloud.x - player.x, cloud.y - player.y);
+          if (currentObjective && currentObjective.id === "dense" && d < 280) {
+            currentObjective.denseSeen = true;
+          }
+          if (d < cloud.r + player.radius) {
+            player.clarity = clamp(player.clarity - dt * 10, 0, 100);
+            damage(dt * 4.3, "dense");
+          }
+        }
+
+        for (const c of competitors) {
+          if (!c.alive) continue;
+          const moved = Math.hypot(c.x - c.lastX, c.y - c.lastY);
+          c.lastX = c.x;
+          c.lastY = c.y;
+          c.stuckTime = moved < 0.7 ? c.stuckTime + dt : 0;
+          if (!c.target || c.target.amount <= 2 || Math.random() < dt * 0.16) c.target = nearestFood(c);
+
+          let ax = Math.cos(c.wander) * 0.35;
+          let ay = Math.sin(c.wander) * 0.35;
+          c.wander += Math.sin(last * 0.001 + c.phase) * dt * 0.65;
+
+          if (c.target) {
+            const td = Math.hypot(c.target.x - c.x, c.target.y - c.y);
+            if (td > c.target.r + 12) {
+              ax += (c.target.x - c.x) / Math.max(1, td) * 1.3;
+              ay += (c.target.y - c.y) / Math.max(1, td) * 1.3;
+            } else {
+              ax += Math.sin(last * 0.003 + c.phase) * 0.9;
+              ay += Math.cos(last * 0.003 + c.phase) * 0.9;
+              c.target.amount = Math.max(0, c.target.amount - dt * 7);
+              if (Math.random() < dt * 2.4) addParticles(c.target.x, c.target.y, c.target.type.color, 1, c.target.r, 18);
+              if (currentObjective && currentObjective.id === "competition" && !currentObjective.completed && dist(c, player) < 190) {
+                currentObjective.competed += dt;
+                if (currentObjective.competed > 2.2) completeObjective("competition");
+              }
+            }
+          }
+
+          if (c.stuckTime > 0.65) {
+            c.wander = rand(0, TAU);
+            c.vx += Math.cos(c.wander) * 90;
+            c.vy += Math.sin(c.wander) * 90;
+            c.stuckTime = 0;
+          }
+
+          c.vx += ax * 115 * dt;
+          c.vy += ay * 115 * dt;
+          c.vx *= Math.pow(0.16, dt);
+          c.vy *= Math.pow(0.16, dt);
+          const cs = Math.hypot(c.vx, c.vy);
+          if (cs > 78) {
+            c.vx = (c.vx / cs) * 78;
+            c.vy = (c.vy / cs) * 78;
+          }
+          c.x = clamp(c.x + c.vx * dt, 25, W - 35);
+          c.y = clamp(c.y + c.vy * dt, 30, H - 35);
+          if (cs > 3) c.angle = Math.atan2(c.vy, c.vx);
+        }
+
+        for (const h of helpers) {
+          if (h.alive === false) continue;
+          h.phase += dt * 2.2;
+          if (currentObjective && currentObjective.id === "facilitation" && currentObjective.raspedFood) {
+            h.target = currentObjective.raspedFood;
+            h.waitForPlayerRasp = false;
+          }
+          const waitingForRasp = currentObjective && currentObjective.id === "facilitation" && h.waitForPlayerRasp;
+          if (!waitingForRasp && (!h.target || h.target.amount <= 2 || Math.random() < dt * 0.08)) {
+            const nextTarget = nearestFood(h);
+            if (nextTarget && nextTarget !== h.target) {
+              h.target = nextTarget;
+              h.wasFeeding = false;
+              h.feedEffectTime = 0;
+            }
+          }
+
+          const targetReady = !waitingForRasp && h.target && h.target.amount > 2;
+          h.feeding = false;
+          if (targetReady) {
+            const d = Math.hypot(h.target.x - h.x, h.target.y - h.y);
+            const a = Math.atan2(h.target.y - h.y, h.target.x - h.x);
+            h.angle = a;
+            if (d > h.target.r + 12) {
+              h.vx += Math.cos(a) * 94 * dt;
+              h.vy += Math.sin(a) * 94 * dt;
+            } else {
+              h.feeding = true;
+              if (!h.wasFeeding) h.feedEffectTime = 1;
+              h.feedEffectTime = Math.max(0, h.feedEffectTime - dt);
+              h.helped = clamp(h.helped + dt * 0.32, 0, 1);
+              h.target.amount = Math.max(0, h.target.amount - dt * 3.5);
+              if (h.feedEffectTime > 0 && Math.random() < dt * 8) {
+                addParticles(h.target.x, h.target.y, h.target.type.color, 3, h.target.r * 0.55, 34);
+                addRipple(h.target.x, h.target.y, h.target.r + 5, h.target.type.color);
+              }
+            }
+          } else {
+            h.wasFeeding = false;
+            h.angle += Math.sin(last * 0.001 + h.phase) * dt * 0.4;
+            h.vx += Math.cos(h.angle) * 18 * dt;
+            h.vy += Math.sin(h.angle) * 18 * dt;
+          }
+          if (h.feeding) h.wasFeeding = true;
+
+          h.vx *= Math.pow(0.18, dt);
+          h.vy *= Math.pow(0.18, dt);
+          const hs = Math.hypot(h.vx, h.vy);
+          if (hs > 64) {
+            h.vx = (h.vx / hs) * 64;
+            h.vy = (h.vy / hs) * 64;
+          }
+          h.x = clamp(h.x + h.vx * dt, 30, W - 35);
+          h.y = clamp(h.y + h.vy * dt, 35, H - 35);
+
+          if (h.feeding) {
+            if (h.helped > 0.45) {
+              if (currentObjective && currentObjective.id === "facilitation" && !currentObjective.completed) currentObjective.helperFed = true;
+            }
+          }
+        }
+
+        for (const pr of predators) {
+          pr.cooldown = Math.max(0, pr.cooldown - dt);
+          const d = Math.hypot(player.x - pr.x, player.y - pr.y);
+          const detectRadius = 260;
+          const giveUpRadius = 390;
+          const isObjectivePredator = currentObjective && currentObjective.id === "predator" && currentObjective.predator === pr && !currentObjective.completed;
+          const firstPlayerChase = pr.targetType === "player" && pr.playerFirst;
+          const viewW = cw / scale;
+          const viewH = ch / scale;
+          const predatorInView = pr.x > camera.x - 8 && pr.x < camera.x + viewW + 8 && pr.y > camera.y - 8 && pr.y < camera.y + viewH + 8;
+          if (isObjectivePredator && firstPlayerChase && pr.chasing) {
+            if (predatorInView) pr.seenByPlayer = true;
+            if (pr.seenByPlayer) {
+              pr.chaseElapsed = Math.min(pr.requiredChaseTime || 4, (pr.chaseElapsed || 0) + dt);
+            }
+          }
+          const firstChaseLocked = isObjectivePredator && firstPlayerChase && (!pr.seenByPlayer || (pr.chaseElapsed || 0) < (pr.requiredChaseTime || 4));
+          if (isObjectivePredator && firstPlayerChase) {
+            pr.escapeHold = !firstChaseLocked && d > detectRadius ? (pr.escapeHold || 0) + dt : 0;
+          }
+          if (pr.targetType === "competitor" && (!pr.targetCompetitor || pr.targetCompetitor.alive === false)) {
+            pr.targetType = "player";
+            pr.targetCompetitor = null;
+            pr.chasing = false;
+          }
+
+          if (isObjectivePredator && firstPlayerChase && (pr.escapeHold || 0) > 1.1) {
+            pr.playerFirst = false;
+            pr.chasing = false;
+            pr.targetCompetitor = null;
+            pr.cooldown = Math.max(pr.cooldown, 2.0);
+            if (currentObjective && currentObjective.id === "predator" && currentObjective.chased && !currentObjective.completed) {
+              completeObjective(null);
+            }
+          }
+
+          if (!pr.chasing && pr.cooldown <= 0) {
+            if (pr.playerFirst) {
+              if (firstChaseLocked || d < detectRadius) {
+                pr.chasing = true;
+                pr.targetType = "player";
+                pr.alert = 1;
+                if (isObjectivePredator) currentObjective.chased = true;
+              }
+            } else {
+              const nearbyPrey = nearestLivingPrey(pr, 210);
+              if (nearbyPrey) {
+                pr.chasing = true;
+                pr.targetType = "competitor";
+                pr.targetCompetitor = nearbyPrey;
+                pr.alert = 1;
+              } else if (d < detectRadius) {
+                pr.chasing = true;
+                pr.targetType = "player";
+                pr.targetCompetitor = null;
+                pr.alert = 1;
+              }
+            }
+          }
+
+          const target = pr.targetType === "competitor" && pr.targetCompetitor && pr.targetCompetitor.alive !== false
+            ? pr.targetCompetitor
+            : player;
+          const targetDistance = Math.hypot(target.x - pr.x, target.y - pr.y);
+
+          const regularGiveUp = (!firstPlayerChase || !isObjectivePredator) && targetDistance > giveUpRadius;
+          if (pr.chasing && regularGiveUp) {
+            pr.chasing = false;
+            pr.targetType = "player";
+            pr.targetCompetitor = null;
+            pr.cooldown = 2.0;
+          }
+
+          let ax = Math.sin(last * 0.00045 + pr.phase) * 0.42;
+          let ay = Math.cos(last * 0.00052 + pr.phase) * 0.42;
+          let accel = 42;
+          let maxPredatorSpeed = 56;
+          if (pr.chasing) {
+            ax += (target.x - pr.x) / Math.max(1, targetDistance) * 1.35;
+            ay += (target.y - pr.y) / Math.max(1, targetDistance) * 1.35;
+            accel = 72;
+            maxPredatorSpeed = 112;
+          }
+          pr.alert = Math.max(0, pr.alert - dt * 0.7);
+          pr.vx += ax * accel * dt;
+          pr.vy += ay * accel * dt;
+          pr.vx *= Math.pow(0.28, dt);
+          pr.vy *= Math.pow(0.28, dt);
+          const ps = Math.hypot(pr.vx, pr.vy);
+          if (ps > maxPredatorSpeed) {
+            pr.vx = (pr.vx / ps) * maxPredatorSpeed;
+            pr.vy = (pr.vy / ps) * maxPredatorSpeed;
+          }
+          pr.x = clamp(pr.x + pr.vx * dt, 35, W - 35);
+          pr.y = clamp(pr.y + pr.vy * dt, 35, H - 35);
+          if (ps > 3) pr.angle = Math.atan2(pr.vy, pr.vx);
+          if (d < player.radius + 28 && player.invuln <= 0) {
+            damage(18, "predator");
+            const keepLessonChasing = isObjectivePredator && firstPlayerChase && firstChaseLocked;
+            pr.chasing = keepLessonChasing;
+            pr.playerFirst = isObjectivePredator || (currentObjective && currentObjective.id === "predator" && !currentObjective.completed);
+            pr.targetType = "player";
+            pr.targetCompetitor = null;
+            pr.cooldown = keepLessonChasing ? 0 : 3.4;
+            const away = Math.atan2(player.y - pr.y, player.x - pr.x);
+            player.vx += Math.cos(away) * 210;
+            player.vy += Math.sin(away) * 210;
+          }
+          if (pr.targetType === "competitor" && pr.targetCompetitor && pr.targetCompetitor.alive !== false && targetDistance < 34) {
+            pr.targetCompetitor.alive = false;
+            addParticles(pr.targetCompetitor.x, pr.targetCompetitor.y, pr.targetCompetitor.isHelper ? "#f7e8a5" : "#9fd3c7", 24, 22, 80);
+            addRipple(pr.targetCompetitor.x, pr.targetCompetitor.y, 34, "#ef476f");
+            pr.chasing = false;
+            pr.targetType = "player";
+            pr.targetCompetitor = null;
+            pr.cooldown = 2.6;
+          }
+        }
+
+        for (const f of foods) {
+          if (f.amount < f.max) f.amount = Math.min(f.max, f.amount + dt * 0.9);
+        }
+
+        for (const b of bubbles) {
+          b.y -= b.s * dt;
+          b.x += Math.sin(last * 0.001 + b.y * 0.02) * dt * 10;
+          if (b.y < -10) {
+            b.y = H + 10;
+            b.x = rand(0, W);
+          }
+        }
+
+        for (const p of particles) {
+          p.life -= dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= Math.pow(0.08, dt);
+          p.vy *= Math.pow(0.08, dt);
+        }
+        particles = particles.filter(p => p.life > 0);
+
+        for (const r of ripples) r.t += dt;
+        ripples = ripples.filter(r => r.t < 0.7);
+
+        player.clarity = clamp(player.clarity + dt * 0.65, 0, 100);
+        camera.x = lerp(camera.x, clamp(player.x - cw / (2 * scale), 0, W - cw / scale), 1 - Math.pow(0.0006, dt));
+        camera.y = lerp(camera.y, clamp(player.y - ch / (2 * scale), 0, H - ch / scale), 1 - Math.pow(0.0006, dt));
+
+        checkObjectiveProgress(dt);
+        updateHud();
+      }
+
+      function worldToScreenStart() {
+        ctx.save();
+        ctx.translate(cw / 2, ch / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-camera.x - cw / (2 * scale) + cw / (2 * scale), -camera.y - ch / (2 * scale) + ch / (2 * scale));
+      }
+
+      function drawBackground(t) {
+        const grd = ctx.createLinearGradient(0, 0, 0, H);
+        grd.addColorStop(0, "#20829c");
+        grd.addColorStop(0.48, "#1d6f80");
+        grd.addColorStop(1, "#244c42");
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        for (let y = -80; y < H + 80; y += 86) {
+          ctx.beginPath();
+          for (let x = -40; x < W + 40; x += 34) {
+            const yy = y + Math.sin(x * 0.012 + t * 0.001) * 18;
+            if (x === -40) ctx.moveTo(x, yy);
+            else ctx.lineTo(x, yy);
+          }
+          ctx.strokeStyle = "#d8fff5";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.fillStyle = "#2f513f";
+        ctx.beginPath();
+        ctx.moveTo(W * 0.78, 0);
+        ctx.bezierCurveTo(W * 0.87, H * 0.22, W * 0.82, H * 0.66, W, H);
+        ctx.lineTo(W, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#6f5b39";
+        ctx.beginPath();
+        ctx.moveTo(0, H * 0.82);
+        for (let x = 0; x <= W; x += 70) {
+          ctx.lineTo(x, H * 0.82 + Math.sin(x * 0.016 + t * 0.0007) * 25 + rand(-1, 1));
+        }
+        ctx.lineTo(W, H);
+        ctx.lineTo(0, H);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawPlants(t) {
+        for (const p of plants) {
+          const sway = Math.sin(t * 0.002 + p.sway) * 10;
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.w;
+          ctx.lineCap = "round";
+          ctx.globalAlpha = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y + p.h * 0.45);
+          ctx.quadraticCurveTo(p.x + sway, p.y, p.x + sway * 0.5, p.y - p.h * 0.5);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = p.color;
+          for (let i = 0; i < 3; i++) {
+            const yy = p.y + p.h * 0.25 - i * p.h * 0.22;
+            ctx.beginPath();
+            ctx.ellipse(p.x + sway * 0.5 + (i % 2 ? -12 : 12), yy, p.w * 1.4, p.w * 3.2, i % 2 ? -0.8 : 0.8, 0, TAU);
+            ctx.fill();
+          }
+        }
+      }
+
+      function drawFood(t) {
+        for (const f of foods) {
+          if (f.amount <= 0.5) continue;
+          const pct = f.amount / f.max;
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.globalAlpha = 0.28 + pct * 0.62;
+          ctx.fillStyle = f.type.color;
+          ctx.beginPath();
+          for (let i = 0; i < 18; i++) {
+            const a = (i / 18) * TAU;
+            const rr = f.r * (0.74 + Math.sin(a * 3 + f.seed + t * 0.001) * 0.12) * (0.6 + pct * 0.5);
+            const x = Math.cos(a) * rr;
+            const y = Math.sin(a) * rr * 0.72;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.globalAlpha = 0.75;
+          ctx.fillStyle = "rgba(255,255,255,0.45)";
+          for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.arc(Math.cos(f.seed + i * 1.8) * f.r * pct * 0.45, Math.sin(f.seed + i * 2.1) * f.r * pct * 0.28, 1.6, 0, TAU);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      function drawFloatFood() {
+        for (const p of floatFood) {
+          ctx.fillStyle = `hsla(${p.hue}, 82%, 70%, 0.9)`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, TAU);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.38)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+
+      function drawSediment(t) {
+        for (const s of sediments) {
+          const a = 0.34 + s.moved * 0.34;
+          ctx.fillStyle = `rgba(188, 126, 67, ${a})`;
+          ctx.beginPath();
+          ctx.ellipse(s.x, s.y, s.r * (1.4 + s.moved), s.r * 0.72, Math.sin(s.seed) * 0.8, 0, TAU);
+          ctx.fill();
+        }
+
+        for (const c of denseClouds) {
+          const grd = ctx.createRadialGradient(c.x, c.y, c.r * 0.1, c.x, c.y, c.r);
+          grd.addColorStop(0, "rgba(115, 78, 52, 0.62)");
+          grd.addColorStop(0.65, "rgba(115, 78, 52, 0.34)");
+          grd.addColorStop(1, "rgba(115, 78, 52, 0)");
+          ctx.fillStyle = grd;
+          ctx.beginPath();
+          ctx.arc(c.x + Math.sin(t * 0.001 + c.seed) * 7, c.y, c.r, 0, TAU);
+          ctx.fill();
+        }
+      }
+
+      function drawTadpole(body, color, eyeColor, size, t, ghost) {
+        const speed = Math.hypot(body.vx || 0, body.vy || 0);
+        const angle = body.angle || 0;
+        const morph = !ghost ? clamp((player.biomass - 75) / 25, 0, 1) : 0;
+        const hindLeg = clamp(morph * 1.45, 0, 1);
+        const frontLeg = clamp((morph - 0.34) / 0.66, 0, 1);
+        ctx.save();
+        ctx.translate(body.x, body.y);
+        ctx.rotate(angle);
+        ctx.globalAlpha = ghost ? 0.74 : 1;
+
+        const wiggle = Math.sin(t * 0.012 + body.x * 0.02) * (5 + speed * 0.02);
+        const tailLength = size * (2.05 - morph * 0.78);
+        const tailWidth = size * (0.36 - morph * 0.14);
+        ctx.fillStyle = color.tail;
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.56, 0);
+        ctx.quadraticCurveTo(-size * 1.34, -tailWidth + wiggle, -tailLength, -size * 0.04);
+        ctx.quadraticCurveTo(-size * 1.34, tailWidth + wiggle, -size * 0.56, 0);
+        ctx.fill();
+
+        if (morph > 0) {
+          ctx.save();
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          const limbColor = morphLimbColor(morph);
+          ctx.strokeStyle = limbColor;
+          ctx.fillStyle = limbColor;
+          ctx.globalAlpha = 0.42 + morph * 0.58;
+          ctx.lineWidth = Math.max(3, size * 0.15);
+
+          if (hindLeg > 0) {
+            for (const side of [-1, 1]) {
+              ctx.beginPath();
+              ctx.moveTo(-size * 0.22, side * size * 0.36);
+              ctx.lineTo(-size * (0.36 + hindLeg * 0.3), side * size * (0.52 + hindLeg * 0.2));
+              ctx.lineTo(-size * (0.12 + hindLeg * 0.08), side * size * (0.64 + hindLeg * 0.18));
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.ellipse(-size * (0.1 + hindLeg * 0.08), side * size * (0.66 + hindLeg * 0.18), size * 0.12 * hindLeg, size * 0.055 * hindLeg, side * 0.25, 0, TAU);
+              ctx.fill();
+            }
+          }
+
+          if (frontLeg > 0) {
+            ctx.lineWidth = Math.max(2.5, size * 0.12);
+            for (const side of [-1, 1]) {
+              ctx.beginPath();
+              ctx.moveTo(size * 0.25, side * size * 0.34);
+              ctx.lineTo(size * (0.44 + frontLeg * 0.14), side * size * (0.45 + frontLeg * 0.12));
+              ctx.lineTo(size * (0.34 + frontLeg * 0.18), side * size * (0.57 + frontLeg * 0.12));
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.ellipse(size * (0.34 + frontLeg * 0.19), side * size * (0.58 + frontLeg * 0.12), size * 0.085 * frontLeg, size * 0.045 * frontLeg, -side * 0.2, 0, TAU);
+              ctx.fill();
+            }
+          }
+          ctx.restore();
+        }
+
+        ctx.fillStyle = morph > 0 ? morphBodyColor(morph) : color.body;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size * (0.86 + morph * 0.07), size * (0.62 + morph * 0.05), 0, 0, TAU);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(255,255,255,0.16)";
+        ctx.beginPath();
+        ctx.ellipse(size * 0.12, -size * 0.18, size * 0.34, size * 0.16, -0.3, 0, TAU);
+        ctx.fill();
+
+        ctx.fillStyle = eyeColor;
+        ctx.beginPath();
+        ctx.arc(size * 0.5, -size * 0.22, size * 0.12, 0, TAU);
+        ctx.arc(size * 0.5, size * 0.22, size * 0.12, 0, TAU);
+        ctx.fill();
+
+        ctx.fillStyle = "#081316";
+        ctx.beginPath();
+        ctx.arc(size * 0.54, -size * 0.22, size * 0.055, 0, TAU);
+        ctx.arc(size * 0.54, size * 0.22, size * 0.055, 0, TAU);
+        ctx.fill();
+
+        if (!ghost && player.raspPulse > 0) {
+          ctx.strokeStyle = `rgba(255, 209, 102, ${player.raspPulse * 0.75})`;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(size * 0.72, 0, size * (1.1 + player.raspPulse * 0.3), -0.7, 0.7);
+          ctx.stroke();
+        }
+
+        if (!ghost && player.flutterPulse > 0) {
+          ctx.strokeStyle = `rgba(213, 163, 95, ${player.flutterPulse * 0.55})`;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(-size * 0.4, 0, size * (1.4 + player.flutterPulse * 0.8), 0, TAU);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawPredator(p, t) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+        const pulse = Math.sin(t * 0.008 + p.phase) * 3;
+        if (p.chasing || p.alert > 0) {
+          ctx.save();
+          ctx.globalAlpha = p.chasing ? 0.34 : p.alert * 0.24;
+          ctx.strokeStyle = "#ef476f";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(0, 0, 48 + Math.sin(t * 0.009) * 4, 0, TAU);
+          ctx.stroke();
+          ctx.restore();
+        }
+        ctx.fillStyle = p.chasing ? "#8b2b45" : "#6d2337";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 32 + pulse, 18, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#ef476f";
+        ctx.beginPath();
+        ctx.moveTo(-28, 0);
+        ctx.lineTo(-52, -18);
+        ctx.lineTo(-46, 0);
+        ctx.lineTo(-52, 18);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#ffdce5";
+        ctx.beginPath();
+        ctx.arc(18, -6, 4, 0, TAU);
+        ctx.arc(18, 6, 4, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#07191d";
+        ctx.beginPath();
+        ctx.arc(20, -6, 2, 0, TAU);
+        ctx.arc(20, 6, 2, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawHelper(h, t) {
+        ctx.save();
+        ctx.translate(h.x, h.y + Math.sin(t * 0.003 + h.phase) * 4);
+        ctx.rotate(h.angle || 0);
+        ctx.globalAlpha = 0.88;
+        ctx.rotate(Math.sin(t * 0.0016 + h.phase) * 0.12);
+
+        const activeColor = "#9fd3c7";
+        ctx.strokeStyle = activeColor;
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+
+        for (const side of [-1, 1]) {
+          for (let i = 0; i < 3; i++) {
+            const x = -4 + i * 8;
+            ctx.beginPath();
+            ctx.moveTo(x, side * 5);
+            ctx.lineTo(x - 6, side * (12 + i * 2));
+            ctx.lineTo(x + 2, side * (17 + i));
+            ctx.stroke();
+          }
+        }
+
+        ctx.strokeStyle = "rgba(225, 255, 245, 0.82)";
+        for (const offset of [-4, 0, 4]) {
+          ctx.beginPath();
+          ctx.moveTo(-18, offset * 0.18);
+          ctx.lineTo(-35, offset);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = activeColor;
+        for (let i = 0; i < 5; i++) {
+          ctx.beginPath();
+          ctx.ellipse(-9 + i * 7, 0, 6.4, 4.8, 0, 0, TAU);
+          ctx.fill();
+        }
+
+        if (h.feeding && h.feedEffectTime > 0) {
+          ctx.strokeStyle = "rgba(255, 209, 102, 0.86)";
+          ctx.lineWidth = 1.8;
+          for (let i = 0; i < 4; i++) {
+            const y = -5 + i * 3.3;
+            ctx.beginPath();
+            ctx.moveTo(24, y);
+            ctx.lineTo(34 + Math.sin(t * 0.02 + i) * 5, y + Math.cos(t * 0.014 + i) * 2);
+            ctx.stroke();
+          }
+        }
+
+        ctx.fillStyle = "#dff8ec";
+        ctx.beginPath();
+        ctx.ellipse(24, 0, 7.8, 6.4, 0, 0, TAU);
+        ctx.fill();
+
+        ctx.fillStyle = "#10221f";
+        ctx.beginPath();
+        ctx.arc(27, -2.5, 1.4, 0, TAU);
+        ctx.arc(27, 2.5, 1.4, 0, TAU);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.45)";
+        ctx.lineWidth = 1.4;
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath();
+          ctx.moveTo(-13 + i * 7, -5);
+          ctx.lineTo(-12 + i * 7, 5);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        for (const p of particles) {
+          const a = clamp(p.life / p.max, 0, 1);
+          ctx.globalAlpha = a;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, TAU);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function drawRipples() {
+        for (const r of ripples) {
+          const a = 1 - r.t / 0.7;
+          ctx.strokeStyle = r.color.replace(")", `, ${0.35 * a})`).replace("rgb", "rgba");
+          if (!ctx.strokeStyle || ctx.strokeStyle === "#000000") ctx.strokeStyle = `rgba(255,255,255,${0.2 * a})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(r.x, r.y, r.r + r.t * 50, 0, TAU);
+          ctx.stroke();
+        }
+      }
+
+      function drawGuideHalo(x, y, radius, t, color) {
+        const pulse = 0.5 + Math.sin(t * 0.006) * 0.5;
+        ctx.save();
+        ctx.globalAlpha = 0.5 + pulse * 0.3;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4;
+        ctx.setLineDash([10, 8]);
+        ctx.beginPath();
+        ctx.arc(x, y, radius + pulse * 12, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 0.13 + pulse * 0.1;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, radius + 18, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawObjectiveGuides(t) {
+        if (!currentObjective || currentObjective.completed || lessonOpen) return;
+        const id = currentObjective.id;
+        const finalFoodGuideExpired = (id === "biomass" || id === "metamorphosis") && t > currentObjective.guideUntil;
+        if (!finalFoodGuideExpired && (id === "algae" || id === "facilitation" || id === "biomass" || id === "metamorphosis")) {
+          for (const f of foods) {
+            if (f.amount > 4) drawGuideHalo(f.x, f.y, f.r + 12, t, "#ffd166");
+          }
+        }
+        if (!finalFoodGuideExpired && (id === "particles" || id === "biomass" || id === "metamorphosis")) {
+          for (const p of floatFood) drawGuideHalo(p.x, p.y, p.r + 12, t, "#e9ff70");
+        }
+        if (id === "sediment") {
+          for (const s of sediments) if (s.moved < 0.9) drawGuideHalo(s.x, s.y, s.r + 16, t, "#d5a35f");
+        }
+        if (id === "dense") {
+          for (const c of denseClouds) drawGuideHalo(c.x, c.y, c.r + 12, t, "#ef476f");
+        }
+        if (id === "competition") {
+          for (const c of competitors) if (c.alive) drawGuideHalo(c.x, c.y, 36, t, "#ffd166");
+        }
+        if (id === "avoidCompetition") {
+          for (const c of competitors) if (c.alive) drawGuideHalo(c.x, c.y, 48, t, "#ef476f");
+        }
+        if (id === "predator") {
+          for (const p of predators) if (p.lessonPredator) drawGuideHalo(p.x, p.y, 54, t, "#ef476f");
+        }
+      }
+
+      function drawBubbles() {
+        ctx.strokeStyle = "rgba(230,255,250,0.38)";
+        ctx.lineWidth = 1;
+        for (const b of bubbles) {
+          ctx.globalAlpha = b.a;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, TAU);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function render(t) {
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.save();
+        ctx.scale(scale, scale);
+        ctx.translate(-camera.x, -camera.y);
+        drawBackground(t);
+        drawBubbles();
+        drawPlants(t);
+        drawSediment(t);
+        drawFood(t);
+        drawFloatFood();
+        drawObjectiveGuides(t);
+        drawHelperLayer(t);
+        drawRipples();
+        drawParticles();
+        for (const c of competitors) {
+          if (!c.alive) continue;
+          drawTadpole(c, { body: "#547a54", tail: "#7aaa6d" }, "#e9f7da", 17, t, true);
+        }
+        for (const p of predators) drawPredator(p, t);
+        drawTadpole(player, { body: "#f0cc62", tail: "#f5e08a" }, "#fff8d8", player.radius, t, false);
+        drawShoreSignal(t);
+        ctx.restore();
+        drawVignette();
+      }
+
+      function drawHelperLayer(t) {
+        for (const h of helpers) if (h.alive !== false) drawHelper(h, t);
+      }
+
+      function drawShoreSignal(t) {
+        if (player.biomass < 80) return;
+        const alpha = clamp((player.biomass - 80) / 20, 0, 1);
+        ctx.save();
+        ctx.globalAlpha = alpha * (0.45 + Math.sin(t * 0.004) * 0.12);
+        ctx.strokeStyle = "#ffd166";
+        ctx.lineWidth = 5;
+        ctx.setLineDash([16, 16]);
+        ctx.beginPath();
+        ctx.moveTo(W * 0.8, 40);
+        ctx.bezierCurveTo(W * 0.88, H * 0.28, W * 0.86, H * 0.6, W - 48, H - 50);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+
+      function drawVignette() {
+        const clarity = player.clarity / 100;
+        ctx.save();
+        ctx.globalAlpha = 0.25 + (1 - clarity) * 0.34;
+        const grd = ctx.createRadialGradient(cw * 0.5, ch * 0.45, Math.min(cw, ch) * 0.2, cw * 0.5, ch * 0.5, Math.max(cw, ch) * 0.72);
+        grd.addColorStop(0, "rgba(0,0,0,0)");
+        grd.addColorStop(1, "rgba(0,0,0,0.88)");
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, cw, ch);
+        ctx.restore();
+      }
+
+      function loop(now) {
+        const dt = Math.min(0.033, (now - last) / 1000 || 0.016);
+        last = now;
+        if (running && !paused && !ended) updateWorld(dt);
+        render(now);
         requestAnimationFrame(loop);
-    }
-    atualizarUI();atualizarGrafico();requestAnimationFrame(loop);
-}
+      }
 
-if(typeof Chart!=='undefined'){iniciarSimulacao()}else{document.addEventListener('DOMContentLoaded',function(){var t=0,iv=setInterval(function(){t++;if(typeof Chart!=='undefined'){clearInterval(iv);iniciarSimulacao()}else if(t>100){clearInterval(iv);document.getElementById('grafico-loading').textContent='Não foi possível carregar a simulação. Verifique sua conexão com a internet.'}},100)})}
-</script>
+      function metamorphose() {
+        if (player.biomass < 100 || ended) return;
+        ended = true;
+        ui.endBiomass.textContent = Math.round(player.biomass);
+        ui.endLessons.textContent = factsSeen.size;
+        ui.endOverlay.classList.remove("isHidden");
+      }
+
+      function togglePause() {
+        if (!running || ended || lessonOpen) return;
+        paused = !paused;
+        updatePauseButton();
+      }
+
+      ui.startBtn.addEventListener("click", () => {
+        reset();
+        running = true;
+        updatePauseButton();
+        ui.startOverlay.classList.add("isHidden");
+        startObjective(0);
+      });
+
+      ui.restartBtn.addEventListener("click", () => {
+        reset();
+        running = true;
+        ended = false;
+        updatePauseButton();
+        ui.endOverlay.classList.add("isHidden");
+        startObjective(0);
+      });
+
+      ui.deathRestartBtn.addEventListener("click", () => {
+        reset();
+        running = true;
+        ended = false;
+        updatePauseButton();
+        ui.deathOverlay.classList.add("isHidden");
+        startObjective(0);
+      });
+
+      ui.lessonContinueBtn.addEventListener("click", closeLesson);
+      ui.lessonText.addEventListener("click", event => {
+        const term = event.target.closest(".termButton");
+        if (!term) return;
+        event.preventDefault();
+        openGlossary(term.dataset.term);
+      });
+      ui.glossaryCloseBtn.addEventListener("click", closeGlossary);
+      ui.pauseBtn.addEventListener("click", togglePause);
+
+      ui.raspBtn.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        input.rasp = true;
+        ui.raspBtn.setPointerCapture(e.pointerId);
+      });
+      ui.raspBtn.addEventListener("pointerup", () => { input.rasp = false; });
+      ui.raspBtn.addEventListener("pointercancel", () => { input.rasp = false; });
+      ui.raspBtn.addEventListener("pointerleave", () => { input.rasp = false; });
+
+      ui.flutterBtn.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        input.flutter = true;
+        ui.flutterBtn.setPointerCapture(e.pointerId);
+      });
+      ui.flutterBtn.addEventListener("pointerup", () => { input.flutter = false; });
+      ui.flutterBtn.addEventListener("pointercancel", () => { input.flutter = false; });
+      ui.flutterBtn.addEventListener("pointerleave", () => { input.flutter = false; });
+
+      ui.stick.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        input.pointerId = e.pointerId;
+        ui.stick.setPointerCapture(e.pointerId);
+        input.stickRect = ui.stick.getBoundingClientRect();
+        setStickFromEvent(e);
+      });
+
+      ui.stick.addEventListener("pointermove", e => {
+        if (input.pointerId !== e.pointerId) return;
+        e.preventDefault();
+        setStickFromEvent(e);
+      });
+
+      ui.stick.addEventListener("pointerup", e => {
+        if (input.pointerId === e.pointerId) clearStick();
+      });
+
+      ui.stick.addEventListener("pointercancel", e => {
+        if (input.pointerId === e.pointerId) clearStick();
+      });
+
+      window.addEventListener("keydown", e => {
+        const key = e.key.toLowerCase();
+        if (!ui.glossaryOverlay.classList.contains("isHidden") && (key === " " || key === "enter" || key === "escape")) {
+          e.preventDefault();
+          closeGlossary();
+          return;
+        }
+        if (lessonOpen && (key === " " || key === "enter" || key === "escape")) {
+          e.preventDefault();
+          closeLesson();
+          return;
+        }
+        input.keys.add(key);
+        if (key === " " || key === "j") input.rasp = true;
+        if (key === "k") input.flutter = true;
+        if (key === "p" || key === "escape") togglePause();
+      });
+
+      window.addEventListener("keyup", e => {
+        const key = e.key.toLowerCase();
+        input.keys.delete(key);
+        if (key === " " || key === "j") input.rasp = false;
+        if (key === "k") input.flutter = false;
+      });
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("orientationchange", () => setTimeout(resize, 120));
+      window.addEventListener("contextmenu", e => e.preventDefault());
+
+      resize();
+      reset();
+      requestAnimationFrame(loop);
+    })();
+  </script>
 </body>
 </html>
